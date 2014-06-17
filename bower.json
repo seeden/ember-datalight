@@ -1,0 +1,17 @@
+{
+	"name": "ember-datalight",
+	"description": "A lightweight data persistence library for Ember with full support of JSON structure",
+	"version": "0.9.0",
+	"keywords": [
+		"ember"
+	],
+	"main": [
+		"index.js"
+	],
+	"ignore": [
+		".*"
+	],
+	"dependencies": {
+		"ember": "^1.0"
+	}
+}
