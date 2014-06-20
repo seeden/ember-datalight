@@ -67,42 +67,35 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
-		WebError = __webpack_require__(7),
+		WebError = __webpack_require__(10),
 		DataLight = __webpack_require__(3),
 		ModelBase = __webpack_require__(5),
-		attribute = __webpack_require__(6);
+		RESTAdapter = __webpack_require__(6),
+		attribute = __webpack_require__(7);
 	
 	var Model = module.exports = DataLight.Model = ModelBase.extend({
-		isEmpty: function (keyName) {
-			var str = this.get(keyName);
-			return Ember.isEmpty(str);
-		},
-	
-		isBlank: function(keyName) {
-			var str = this.get(keyName);
-			return Ember.isBlank(str);
-		},
-	
 		save: function() {
+			var self = this;
+			var adapter = Model.get('adapter');
 			var isDeleted = this.get('isDeleted');
 			if(isDeleted) {
 				return this.destroyRecord();
 			}
 	
-			var method = this.get('isNew') ? 'POST' : 'PUT';
-			var data = this.serialize(method);
-			var url = '/' + this.constructor.pathForType() + '/' + this.get(this.constructor.primaryKey);
+			if(this.get('isNew')) {
+				return adapter.createRecord(this.constructor, this).then(function() {
+					self.set('isNew', false);
+				});
+			}
 	
-			return this.constructor[method](url, { data: data }).then(function() {
-				this.set('isNew', false);
-			});
+			return adapter.updateRecord(this.constructor, this);
 		},
 	
 		destroyRecord: function() {
 			var self = this;
 			var isNew = this.get('isNew');
 			var isDestroyed = this.get('isDestroyed');
-			var url = '/' + this.constructor.pathForType() + '/' + this.get(this.constructor.primaryKey);
+			var adapter = Model.get('adapter');
 	
 			this.set('isDeleted', true);
 	
@@ -116,7 +109,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					return resolve();
 				}
 	
-				self.constructor.DELETE(url).then(function() {
+				adapter.deleteRecord(self.constructor, self).then(function() {
 					self.destroy();
 				}).then(resolve, reject);
 			});
@@ -124,147 +117,36 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		deleteRecord: function() {
 			this.set('isDeleted', true);
+		},
+	
+		isEmpty: function (keyName) {
+			var str = this.get(keyName);
+			return Ember.isEmpty(str);
+		},
+	
+		isBlank: function(keyName) {
+			var str = this.get(keyName);
+			return Ember.isBlank(str);
 		}
 	});
 	
 	Model.reopenClass({
-		attr: attr,
+		adapter: RESTAdapter.create({}),
+		attribute: attribute,
 	
 		primaryKey: 'id',
 		type: null,
-		cache: true,
-		cacheItems: {},
-		cacheSize: 0,
-		cacheMax: null,
 	
-		namespace: 'api',
-		headers: {},
-	
-		ajax: function(url, settings, postProcess) {
-			if(!postProcess) {
-				postProcess = function(){};
-			}
-	
-			if(typeof settings === 'function') {
-				postProcess = settings;
-				settings = {};
-			}
-	
-			if(Model.namespace) {
-				url = '/' + Model.namespace + url;
-			}
-	
-			settings.headers = Ember.$.extend({}, Model.headers, settings.headers);
-			settings.dataType = settings.dataType || 'json';
-	
-			return new Ember.RSVP.Promise(function (resolve, reject) {
-				Ember.$.ajax(url, settings).then(function(data) {
-					Ember.run(null, resolve, postProcess(data));
-				}, function(response) {
-					var message = response.responseTest || 'Unknown error';
-					if(response.responseJSON && response.responseJSON.message) {
-						message = response.responseJSON.message;	
-					}
-	
-					var status = response.status || 500;
-					var error = new WebError(status, message);
-	
-					Ember.run(null, reject, error);
-				});
-			});
+		find: function(id) {
+			return this.adapter.find(this, id);
 		},
 	
-		POST: function(url, settings, postProcess) {
-			settings.type = 'POST';
-			return this.ajax(url, settings, postProcess);
+		findAll: function(sinceToken) {
+			return this.adapter.findAll(this, sinceToken);
 		},
 	
-		DELETE: function(url, settings, postProcess) {
-			settings.type = 'DELETE';
-			return this.ajax(url, settings, postProcess);
-		},
-	
-		PUT: function(url, settings, postProcess) {
-			settings.type = 'PUT';
-			return this.ajax(url, settings, postProcess);
-		},
-	
-		getFromCache: function(cacheID) {
-			if(!cacheID || !this.cacheItems[cacheID]) {
-				return null;
-			}
-	
-			return this.cacheItems[cacheID];
-		},
-	
-		push: function(data) {
-			var chacheID = item[primaryKey];
-			if(!chacheID) {
-				throw new Error('Model does not contains primary key')
-			}
-	
-			var item = this.createRecord(data, true);
-	
-			this.addToCache(chacheID, item);
-		},
-	
-		addToCache: function(cacheID, item) {
-			//save newest value
-			if(this.cacheItems[cacheID]) {
-				this.cacheItems[cacheID].setData(item.toJSON());
-				return;
-			}
-	
-			this.cacheItems[cacheID] = item;
-			this.cacheSize++;
-	
-			if(this.cacheMax!==null && this.cacheSize>this.cacheMax) {
-				this.clearCache();
-			}
-		},
-	
-		clearCache: function(){
-			this.cacheItems = {};
-			this.cacheSize = 0;
-		},
-	
-		_find: function(options, postProcess) {
-			var self = this;
-	
-			var url = '/'+this.pathForType();
-			var data = {};
-	
-			if(typeof options === 'string') {
-				url+='/'+options;	
-			} else {
-				data = options;
-			}
-	
-			if(this.cache) {
-				var cacheID = url + JSON.stringify(data);
-				var cachedItem = this.getFromCache(cacheID);
-				if(cachedItem) {
-					return new Ember.RSVP.Promise(function(resolve) {
-						resolve(cachedItem);
-					});
-				}				
-			}
-	
-			return this.ajax(url, {data: data}, postProcess).then(function(item) {
-				if(self.cache) {
-					self.addToCache(cacheID, item);
-				}
-	
-				return item;
-			});
-		},
-	
-		pathForType: function() {
-			if(!this.type) {
-				throw new Error('Model type is undefined');
-			}
-	
-			return this.type+'s';
+		findQuery: function(query) {
+			return this.adapter.findQuery(this, query);
 		}
 	});
 
@@ -278,7 +160,65 @@ return /******/ (function(modules) { // webpackBootstrap
 		DataLight = __webpack_require__(3);
 	
 	var Adapter = module.exports = DataLight.Adapter = Ember.Object.extend({
+	    serializer: null,
 	
+	
+		find: Ember.required(Function),
+	
+		/**
+	    The `findAll()` method is called when you call `find` on the store
+	    without an ID (i.e. `store.find('post')`).
+	    */
+		findAll: null,
+	
+		/**
+	    This method is called when you call `find` on the store with a
+	    query object as the second parameter (i.e. `store.find('person', {
+	    page: 1 })`).
+		*/
+		findQuery: null,
+	
+	
+		/**
+	    Proxies to the serializer's `serialize` method.
+	    */
+		serialize: Ember.required(Function),
+	
+	
+		/**
+	    Implement this method in a subclass to handle the creation of
+	    new records.
+	    */
+		createRecord: Ember.required(Function),
+	
+		/**
+	    Implement this method in a subclass to handle the updating of
+	    a record.
+	    */
+		updateRecord: Ember.required(Function),
+	
+	
+		/**
+		 * Implement this method in a subclass to handle the deletion of
+	     * a record.
+		 */
+		deleteRecord: Ember.required(Function),
+	
+	
+	 	/**
+	    Find multiple records at once.
+	
+	    By default, it loops over the provided ids and calls `find` on each.
+	    May be overwritten to improve performance and reduce the number of
+	    server requests.
+	    */
+		findMany: function(store, type, ids) {
+	    	var promises = Ember.ArrayPolyfills.map.call(ids, function(id) {
+	      		return this.find(store, type, id);
+	    	}, this);
+	
+	    	return Ember.RSVP.all(promises);
+		}
 	});
 
 /***/ },
@@ -401,38 +341,184 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		copy: function() {
-			var model =  this.constructor.createRecord(this.toJSON());
-			model.setProperties(this.getProperties(['isNew', 'isDeleted']));
-	
-			return model;
-		},
-	
-		serialize: function (method) {
-			return this.toJSON(function(key, meta) {
-				if(method === 'PUT' && meta.options.put === false) {
-					return false;
-				}
-			});
+			var properties = this.getProperties(['__data', '__attributes', 'isNew', 'isDeleted']);
+			var data = Ember.$.extend({}, properties);
+			return this.constructor.create(data);
 		}	
-	});
-	
-	ModelBase.reopenClass({
-		createRecord: function(properties, exists) {
-			properties = properties || {};
-	
-			var model = this.create(properties);
-			model.set('isNew', true);
-	
-			if(exists) {
-				model.saved();
-			}
-	
-			return model;
-		}
 	});
 
 /***/ },
 /* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		DataLight = __webpack_require__(3),
+		Adapter = __webpack_require__(2),
+		RESTSerializer = __webpack_require__(8);
+	
+	var type = {
+		GET: 'GET',
+		POST: 'POST',
+		PUT: 'PUT',
+		DELETE: 'DELETE'
+	};
+	
+	var RESTAdapter = module.exports = DataLight.RESTAdapter = Ember.Object.extend({
+		headers: [],
+		host: null,
+		namespace: null,
+		serializer: RESTSerializer.create({}),
+	
+		find: function(Model, id) {
+			var serializer = this.get('serializer');
+	
+			return this.ajax(this.buildURL(Model, id), type.GET).then(function(data) {
+				return serializer.deserialize(Model, data);
+			});
+		},
+	
+		/**
+		The `findAll()` method is called when you call `find` on the store
+		without an ID (i.e. `store.find('post')`).
+		*/
+		findAll: function(Model, sinceToken) {
+			var query;
+	
+	    	if (sinceToken) {
+	      		query = {
+	      			since: sinceToken
+	      		};
+	    	}
+	
+			return this.findQuery(Model, query);
+		},
+	
+		/**
+		This method is called when you call `find` on the store with a
+		query object as the second parameter (i.e. `store.find('person', {
+		page: 1 })`).
+		*/
+		findQuery: function(Model, query) {
+			var serializer = this.get('serializer');
+	
+			return this.ajax(this.buildURL(Model), type.GET, { data: query }).then(function(data) {
+				return serializer.deserialize(Model, data, true);
+			});
+		},
+	
+	
+		serialize: function(Model, record, options) {
+			options = options || {};
+	
+			return this.get('serializer').serialize(Model, record, options);
+		},
+	
+	
+		/**
+		Implement this method in a subclass to handle the creation of
+		new records.
+		*/
+		createRecord: function(Model, record) {
+			var data = this.serialize(Model, record, { type: type.POST });
+	
+			return this.ajax(this.buildURL(Model), type.POST, { data: data });
+		},
+	
+		/**
+		Implement this method in a subclass to handle the updating of
+		a record.
+		*/
+		updateRecord: function(Model, record) {
+			var id = record.get(Model.primaryKey);
+			var data = this.serialize(Model, record, { type: type.PUT });
+	
+			return this.ajax(this.buildURL(Model, id), type.PUT, { data: data });
+		},
+	
+	
+		/**
+		 * Implement this method in a subclass to handle the deletion of
+		 * a record.
+		 */
+		deleteRecord: function(Model, record) {
+			var id = record.get(Model.primaryKey);
+	
+			return this.ajax(this.buildURL(Model, id), type.DELETE);
+		},
+	
+	
+	
+		ajax: function(url, type, options) {
+			var self = this;
+			var options = this._ajaxOptions(url, type, options);
+	
+			return new Ember.RSVP.Promise(function (resolve, reject) {
+				Ember.$.ajax(options).then(function(data) {
+					Ember.run(null, resolve, data);
+				}, function(response) {
+					Ember.run(null, reject, self._responseToError(response));
+				});
+			});
+		},
+	
+		_prepareURL: function(url) {
+			var host = this.get('host');
+			var namespace = this.get('namespace');
+	
+			if(namespace) {
+				url = '/' + namespace + url;
+			}
+	
+			if(host) {
+				url = '/' + host + url;
+			}
+	
+			return url;
+		},
+	
+		_ajaxOptions: function(url, type, options) {
+			options = options || {};
+			options.url = this._prepareURL(url);
+			options.type = type;
+			options.dataType = 'json';
+			options.context = this;
+			options.headers = Ember.$.extend({}, this.get('headers'), options.headers);
+	
+			return options;
+		},
+	
+		_responseToError: function(response) {
+			var message = response.responseTest || 'Unknown error';
+			if(response.responseJSON && response.responseJSON.message) {
+				message = response.responseJSON.message;    
+			}
+	
+			var status = response.status || 500;
+			return new WebError(status, message);
+		},
+	
+		buildURL: function(Model, id) {
+			var url = '/' + this.pathForType(Model);
+			if(id) {
+				url += '/' + id;	
+			}
+	
+			return url;
+		},
+	
+		pathForType: function(Model) {
+			if(!Model.type) {
+				throw new Error('Model type is undefined');
+			}
+	
+			return Model.type+'s';
+		}
+	});
+
+/***/ },
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Ember = __webpack_require__(4),
@@ -533,7 +619,80 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 
 /***/ },
-/* 7 */
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		DataLight = __webpack_require__(3),
+		JSONSerializer = __webpack_require__(9);
+	
+	var RESTSerializer = module.exports = DataLight.RESTSerializer = JSONSerializer.extend({
+		
+	});
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		DataLight = __webpack_require__(3);
+	
+	var JSONSerializer = module.exports = DataLight.JSONSerializer = Ember.Object.extend({
+		serialize: function(Model, record, options) {
+			return record.toJSON(function(key, meta) {
+				if(options.type === 'PUT' && meta.options.put === false) {
+					return false;
+				}
+			});
+		},
+	
+		deserialize: function(Model, data, isArray) {
+			isArray = isArray || false;
+	
+			var field = this.fieldForType(Model, isArray);
+			var modelData = data[field];
+	
+			if(isArray) {
+				return this._deserializeArray(Model, modelData, data);
+			}
+			
+			return this._deserializeSingle(Model, modelData, data);
+		},
+	
+		_deserializeSingle: function(Model, modelData, content) {
+			var model = Model.create(modelData);
+	
+			model.set('content', content);
+			model.saved();	
+	
+			return model;
+		},
+	
+		_deserializeArray: function(Model, modelDatas, content) {
+			var models = [];
+	
+			for(var i=0; i<modelDatas; i++) {
+				models.push(this._deserializeSingle(Model, modelDatas[i], content));
+			}
+			
+			return models;
+		},
+	
+		fieldForType: function(Model, isArray) {
+			if(!Model.type) {
+				throw new Error('Model type is undefined');
+			}
+	
+			return isArray ? Model.type+'s' : Model.type;
+		}
+	});
+
+/***/ },
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
@@ -604,7 +763,7 @@ return /******/ (function(modules) { // webpackBootstrap
 		//Exports
 		//AMD
 		if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(8)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (BaseError) {
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(11)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (BaseError) {
 				return defineWebError(BaseError);
 			}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		}
@@ -622,7 +781,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	} (this));
 
 /***/ },
-/* 8 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
