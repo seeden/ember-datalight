@@ -38,7 +38,7 @@ Each model you create should extend DataLight.Model or DataLight.CachedModel:
 		})
 	});
 
-Supported attribute types are String, Boolean, Number, [] and Date. Defining a type is optional.
+Supported attribute types are String, Boolean, Number, [], {}, and Date. Defining a type is optional.
 
 
 ## Relationships
