@@ -13,9 +13,6 @@ module.exports = {
 		alias: {
 		}
 	},
-	module: {
-		loaders: []
-	},
 	plugins: [
   		//new webpack.optimize.UglifyJsPlugin()
 	],

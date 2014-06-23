@@ -34,7 +34,6 @@
 		"bower": "~1.2.8",
 		"webpack": "~1.1.10",
 		"ember-templates-loader": "~0.2.1",
-		"exports-loader": "~0.6.2",
 		"imports-loader": "~0.6.3",
 		"script-loader": "~0.5.2"
 	},
