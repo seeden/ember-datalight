@@ -10,7 +10,7 @@ A lightweight data persistence library for Ember with full support of JSON struc
  * Used standard javascript types for model definition
  * Cached
  * CRUD
- * Better, smaller and ready for production use
+ * Better and smaller
 
 I am trying to use API similar to ember-data but their API is sometimes uselessly very complicated.
 
