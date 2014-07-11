@@ -12,6 +12,6 @@
 		".*"
 	],
 	"dependencies": {
-		"ember": "~1.6.0"
+		"ember": "^1.0"
 	}
 }
