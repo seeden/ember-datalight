@@ -1,6 +1,9 @@
 function capitaliseFirstLetter(string) {
 	string = string.replace('./', '');
-    return string.charAt(0).toUpperCase() + string.slice(1);
+    string = string.charAt(0).toUpperCase() + string.slice(1);
+
+    if(string === 'Mixed') string = 'MixedWrapper';
+    return string;
 }
 
 function require(name) {

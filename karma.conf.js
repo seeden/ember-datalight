@@ -19,6 +19,7 @@ module.exports = function(config) {
       'node_modules/should/should.js',
       'test/require.js',
       'lib/wrappers/wrapper.js',
+      'lib/wrappers/mixed.js',
       'lib/wrappers/*.js',
       'test/karma/**/*.js'
       ],
