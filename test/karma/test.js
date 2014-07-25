@@ -14,6 +14,14 @@ describe('Wrapper', function(){
 			wrapper.set('value', value);
 		}).toThrow(new Error("Serialize is not implemented"));
     });
+
+    it('can should copy', function() {
+		var wrapper = Wrapper.create();
+
+		var wrapper2 = wrapper.copy();
+
+		Should(wrapper2 instanceof Wrapper).be.exactly(true);
+    });
 });
 
 describe('Number Wrapper', function(){
@@ -41,6 +49,45 @@ describe('Number Wrapper', function(){
 		});
 
 		Should(wrapper.get('value')).be.exactly(value);
+    });
+
+     it('can check dirty', function() {
+		var wrapper = NumberWrapper.create({});
+
+		Should(wrapper.get('isDirty')).be.exactly(false);
+		wrapper.set('value', 999);
+		Should(wrapper.get('isDirty')).be.exactly(true);
+
+
+		wrapper = NumberWrapper.create({
+			value: value
+		});
+
+		Should(wrapper.get('isDirty')).be.exactly(true);
+    });   
+
+    it('can not set for readOnly', function() {
+		var wrapper = NumberWrapper.create({
+			readOnly: true,
+			original: value
+		});
+
+		Should(wrapper.get('value')).be.exactly(value);
+
+		expect(function(){
+			wrapper.set('value', 9999);
+		}).toThrow(new Error("Variable is read only"));
+    });   
+
+    it('can should copy', function() {
+		var wrapper = NumberWrapper.create({
+			value: value
+		});
+
+		var wrapper2 = wrapper.copy();
+
+		Should(wrapper2 instanceof NumberWrapper).be.exactly(true);
+		Should(wrapper2.get('value')).be.exactly(value);
     });
 
     it('can create with value equal null', function() {
@@ -92,6 +139,17 @@ describe('Boolean Wrapper', function(){
 		Should(wrapper.get('value')).be.exactly(false);
 		Should(wrapper.get('isDefined')).be.exactly(true);
 		Should(wrapper.get('isNull')).be.exactly(false);
+    });
+
+    it('can should copy', function() {
+		var wrapper = BooleanWrapper.create({
+			value: true
+		});
+
+		var wrapper2 = wrapper.copy();
+
+		Should(wrapper2 instanceof BooleanWrapper).be.exactly(true);
+		Should(wrapper2.get('value')).be.exactly(true);
     });
 
 
@@ -188,7 +246,7 @@ describe('Test Model', function(){
 describe('Object Wrapper', function(){
 	it('can create', function() {
 		var obj = ComputedObject.build({
-			name: DataLight.attribute(String)
+			name: DataLight.attribute(String, {defaultValue: 'Zlatko Fedor'})
 		});
 
 		var wrapper = ObjectWrapper.create({
@@ -200,8 +258,8 @@ describe('Object Wrapper', function(){
     });
 });
 
-
-/*MUST BE LAST*/
+/*
+//MUST BE LAST
 describe('Model Wrapper', function(){
 	it('can create', function() {
 		var wrapper = ModelWrapper.create();
@@ -240,4 +298,4 @@ describe('Model Wrapper', function(){
 
 		wrapper.get('computed');
     });
-});
+});*/
