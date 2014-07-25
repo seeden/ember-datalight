@@ -171,6 +171,37 @@ TestModel.reopenClass({
 });
 
 
+describe('Test Model', function(){
+	it('instanceof', function() {
+		var testModel = TestModel.create({});
+
+		Should(TestModel.isModel).be.exactly(true);
+		Should(Model.isModel).be.exactly(true);
+		Should(ModelBase.isModel).not.be.exactly(true);
+
+		Should(testModel instanceof TestModel).be.exactly(true);
+		Should(testModel instanceof Model).be.exactly(true);
+		Should(testModel instanceof ModelBase).be.exactly(true);
+    });
+});
+
+describe('Object Wrapper', function(){
+	it('can create', function() {
+		var obj = ComputedObject.build({
+			name: DataLight.attribute(String)
+		});
+
+		var wrapper = ObjectWrapper.create({
+			obj: obj
+		});
+
+		Should(wrapper.get('isDefined')).be.exactly(true);
+		Should(wrapper.get('isNull')).be.exactly(false);
+    });
+});
+
+
+/*MUST BE LAST*/
 describe('Model Wrapper', function(){
 	it('can create', function() {
 		var wrapper = ModelWrapper.create();
@@ -193,7 +224,6 @@ describe('Model Wrapper', function(){
 		}).toThrow(new Error("Model is not defined or has no implemented method find"));
     });
 
-
     it('can set with real model', function() {
 		var wrapper = ModelWrapper.create({
 			model: TestModel
@@ -209,19 +239,5 @@ describe('Model Wrapper', function(){
 		Should(wrapper.get('isNull')).be.exactly(false);
 
 		wrapper.get('computed');
-    });
-});
-
-describe('Test Model', function(){
-	it('instanceof', function() {
-		var testModel = TestModel.create({});
-
-		Should(TestModel.isModel).be.exactly(true);
-		Should(Model.isModel).be.exactly(true);
-		Should(ModelBase.isModel).not.be.exactly(true);
-
-		Should(testModel instanceof TestModel).be.exactly(true);
-		Should(testModel instanceof Model).be.exactly(true);
-		Should(testModel instanceof ModelBase).be.exactly(true);
     });
 });

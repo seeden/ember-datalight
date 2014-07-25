@@ -14,9 +14,6 @@ function capitaliseFirstLetter(string) {
     else if(string === 'Index') string = 'DataLight';
     else if(string === 'web-error') string = 'WebError';
 
-    
-    
-
     return string;
 }
 
@@ -26,8 +23,4 @@ function require(name) {
 	return window[name];
 }
 
-module = {
-	exports: {
-
-	}
-};
+module = {};
