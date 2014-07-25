@@ -17,12 +17,24 @@ module.exports = function(config) {
       'public/lib/handlebars/handlebars.js', 
       'public/lib/ember/ember.js',
       'node_modules/should/should.js',
+      'node_modules/web-error/node_modules/base-error/index.js',
+      'node_modules/web-error/index.js',
       'test/require.js',
+      'lib/index.js',
+      'lib/attribute.js',
+      'lib/modelbase.js',
+      'lib/jsonserializer.js',
+      'lib/restserializer.js',
+      'lib/adapter.js',
+      'lib/restadapter.js',
+      'lib/model.js',
+      'lib/promiseobject.js',
       'lib/wrappers/wrapper.js',
       'lib/wrappers/mixed.js',
-      'lib/wrappers/*.js',
+      'lib/**/*.js',
       'test/karma/**/*.js'
       ],
+
 
     // web server port
     port: 9876,

@@ -163,6 +163,65 @@ describe('Array Wrapper', function(){
 			Should(item).be.exactly(index===0 ? "ahoj" : "smith");
 		});
     });
+});
 
-  
+var TestModel = Model.extend({});
+TestModel.reopenClass({
+	type: 'test'
+});
+
+
+describe('Model Wrapper', function(){
+	it('can create', function() {
+		var wrapper = ModelWrapper.create();
+
+		Should(wrapper.get('isDefined')).be.exactly(false);
+		Should(wrapper.get('isNull')).be.exactly(false);
+    });
+
+    it('can set value', function() {
+		var wrapper = ModelWrapper.create({});
+
+		wrapper.set('value', 123456);
+
+		Should(wrapper.get('value')).be.exactly(123456);
+		Should(wrapper.get('isDefined')).be.exactly(true);
+		Should(wrapper.get('isNull')).be.exactly(false);
+
+		expect(function(){
+			wrapper.get('computed');
+		}).toThrow(new Error("Model is not defined or has no implemented method find"));
+    });
+
+
+    it('can set with real model', function() {
+		var wrapper = ModelWrapper.create({
+			model: TestModel
+		});
+
+		wrapper.set('value', 123456);
+
+
+		Should(wrapper.get('model').type).be.exactly('test');
+
+		Should(wrapper.get('value')).be.exactly(123456);
+		Should(wrapper.get('isDefined')).be.exactly(true);
+		Should(wrapper.get('isNull')).be.exactly(false);
+
+		wrapper.get('computed');
+    });
+});
+
+describe('Test Model', function(){
+	it('instanceof', function() {
+		var testModel = TestModel.create({});
+
+		Should(TestModel.isModel).be.exactly(true);
+		Should(Model.isModel).be.exactly(true);
+		Should(ModelBase.isModel).not.be.exactly(true);
+
+		Should(testModel instanceof TestModel).be.exactly(true);
+		Should(testModel instanceof Model).be.exactly(true);
+		Should(testModel instanceof ModelBase).be.exactly(true);
+    });
 });
