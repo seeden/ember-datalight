@@ -321,6 +321,8 @@ describe('Model', function(){
 		Should(user instanceof Model).be.exactly(true);
 		Should(user instanceof ModelBase).be.exactly(true);
 
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(false);
 
 		Should(user.get('name')).be.exactly('Zlatko Fedor');
 		Should(user.get('age')).be.exactly(undefined);
@@ -336,12 +338,15 @@ describe('Model', function(){
 			created: Date.now()
 		});
 
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
 		Should(user.get('name')).be.exactly('Zlatik');
 		Should(user.get('age')).be.exactly(18);
 		Should(user.get('canEdit')).be.exactly(true);
     });
 
-    it('can create empty instance', function() {
+    it('can get json', function() {
 		var user = User.create({
 			name: 'Zlatik',
 			age: 18,
@@ -355,6 +360,71 @@ describe('Model', function(){
 		Should(json).have.property('name', 'Zlatik');
 		Should(json).have.property('canEdit', true);
 		Should(json).have.property('created');
-    });    
+    });  
+});
 
+
+describe('Model with subobject', function(){
+	it('can extend with few simple attributes', function() {
+		User = Model.extend({
+			name: DataLight.attribute(String, { defaultValue: 'Zlatko Fedor' }),
+			age: DataLight.attribute(Number),
+			canEdit: DataLight.attribute(Boolean, { defaultValue: false }),
+			created: DataLight.attribute(Date),
+			address: DataLight.attribute({
+				state: DataLight.attribute(String, { defaultValue: 'Slovakia' }),
+				city: DataLight.attribute(String)
+			}),
+		});
+
+		Should(User.isModel).be.exactly(true);
+    });
+
+    it('can create empty instance', function() {
+		var user = User.create({});
+
+		Should(user instanceof User).be.exactly(true);
+		Should(user instanceof Model).be.exactly(true);
+		Should(user instanceof ModelBase).be.exactly(true);
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(false);
+
+		Should(user.get('name')).be.exactly('Zlatko Fedor');
+		Should(user.get('age')).be.exactly(undefined);
+		Should(user.get('canEdit')).be.exactly(false);
+		Should(user.get('created')).be.exactly(undefined);
+
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly(undefined);
+    });
+
+    it('can create instance with values', function() {
+		var user = User.create({
+			address: {
+				city: 'Bratislava'
+			}
+		});
+
+		Should(user instanceof User).be.exactly(true);
+		Should(user instanceof Model).be.exactly(true);
+		Should(user instanceof ModelBase).be.exactly(true);
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
+		Should(user.get('name')).be.exactly('Zlatko Fedor');
+		Should(user.get('age')).be.exactly(undefined);
+		Should(user.get('canEdit')).be.exactly(false);
+		Should(user.get('created')).be.exactly(undefined);
+
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly('Bratislava');
+
+
+		user.set('address.state', 'Italia');
+		Should(user.get('address.state')).be.exactly('Italia');
+    });
 });
