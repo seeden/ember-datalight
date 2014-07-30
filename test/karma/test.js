@@ -471,14 +471,22 @@ describe('Model with array', function(){
 		Should(article.get('tags')).have.property('0', 'house');
 		Should(article.get('tags')).have.property('1', 'car');
 		Should(article.get('tags')).have.property('2', 'cat');
+    });
 
+
+    it('can add and remove value', function() {
+		var article = Article.create({
+			title: 'Article about cats in house',
+			tags: ['house', 'car', 'cat']
+		});
 
 		article.get('attributes.tags').pushObject('dog');
 
 		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(4);
 		Should(article.get('tags')).have.property('3', 'dog');	
-	
+
+
+		article.get('attributes.tags').removeObject('dog');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
     });
-
-
 });
