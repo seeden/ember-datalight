@@ -471,5 +471,14 @@ describe('Model with array', function(){
 		Should(article.get('tags')).have.property('0', 'house');
 		Should(article.get('tags')).have.property('1', 'car');
 		Should(article.get('tags')).have.property('2', 'cat');
+
+
+		article.get('attributes.tags').pushObject('dog');
+
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('tags')).have.property('3', 'dog');	
+	
     });
+
+
 });
