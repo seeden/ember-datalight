@@ -69,10 +69,7 @@ describe('Number Wrapper', function(){
     it('can not set for readOnly', function() {
 		var wrapper = NumberWrapper.create({
 			readOnly: true,
-			original: value
 		});
-
-		Should(wrapper.get('value')).be.exactly(value);
 
 		expect(function(){
 			wrapper.set('value', 9999);
@@ -426,5 +423,53 @@ describe('Model with subobject', function(){
 
 		user.set('address.state', 'Italia');
 		Should(user.get('address.state')).be.exactly('Italia');
+    });
+});
+
+
+var Article = null;
+
+describe('Model with array', function(){
+	it('can extend with few simple attributes', function() {
+		Article = Model.extend({
+			title: DataLight.attribute(String),
+			tags: DataLight.attribute([String])
+		});
+
+		Should(Article.isModel).be.exactly(true);
+    });
+
+    it('can create empty instance', function() {
+		var article = Article.create({});
+
+		Should(article instanceof Article).be.exactly(true);
+		Should(article instanceof Model).be.exactly(true);
+		Should(article instanceof ModelBase).be.exactly(true);
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(false);
+
+		Should(article.get('title')).be.exactly(undefined);
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(0);
+    });
+
+    it('can create instance with values', function() {
+		var article = Article.create({
+			title: 'Article about cats in house',
+			tags: ['house', 'car', 'cat']
+		});
+
+		Should(article instanceof Article).be.exactly(true);
+		Should(article instanceof Model).be.exactly(true);
+		Should(article instanceof ModelBase).be.exactly(true);
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		Should(article.get('title')).be.exactly('Article about cats in house');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		Should(article.get('tags')).have.property('0', 'house');
+		Should(article.get('tags')).have.property('1', 'car');
+		Should(article.get('tags')).have.property('2', 'cat');
     });
 });
