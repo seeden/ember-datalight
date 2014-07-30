@@ -299,3 +299,62 @@ describe('Model Wrapper', function(){
 		wrapper.get('computed');
     });
 });*/
+
+var User = null;
+
+describe('Model', function(){
+	it('can extend with few simple attributes', function() {
+		User = Model.extend({
+			name: DataLight.attribute(String, { defaultValue: 'Zlatko Fedor' }),
+			age: DataLight.attribute(Number),
+			canEdit: DataLight.attribute(Boolean, { defaultValue: false }),
+			created: DataLight.attribute(Date),
+		});
+
+		Should(User.isModel).be.exactly(true);
+    });
+
+    it('can create empty instance', function() {
+		var user = User.create({});
+
+		Should(user instanceof User).be.exactly(true);
+		Should(user instanceof Model).be.exactly(true);
+		Should(user instanceof ModelBase).be.exactly(true);
+
+
+		Should(user.get('name')).be.exactly('Zlatko Fedor');
+		Should(user.get('age')).be.exactly(undefined);
+		Should(user.get('canEdit')).be.exactly(false);
+		Should(user.get('created')).be.exactly(undefined);
+    });
+
+    it('can create empty instance', function() {
+		var user = User.create({
+			name: 'Zlatik',
+			age: 18,
+			canEdit: true,
+			created: Date.now()
+		});
+
+		Should(user.get('name')).be.exactly('Zlatik');
+		Should(user.get('age')).be.exactly(18);
+		Should(user.get('canEdit')).be.exactly(true);
+    });
+
+    it('can create empty instance', function() {
+		var user = User.create({
+			name: 'Zlatik',
+			age: 18,
+			canEdit: true,
+			created: Date.now()
+		});
+
+		var json = user.toJSON();
+
+		Should(json).have.property('age', 18);
+		Should(json).have.property('name', 'Zlatik');
+		Should(json).have.property('canEdit', true);
+		Should(json).have.property('created');
+    });    
+
+});

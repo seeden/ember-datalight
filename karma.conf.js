@@ -22,6 +22,7 @@ module.exports = function(config) {
       'test/require.js',
       'lib/index.js',
       'lib/attribute.js',
+      'lib/computedobject.js',
       'lib/modelbase.js',
       'lib/jsonserializer.js',
       'lib/restserializer.js',

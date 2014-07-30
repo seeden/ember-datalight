@@ -13,6 +13,9 @@ function capitaliseFirstLetter(string) {
     else if(string === 'Restserializer') string = 'RESTSerializer';
     else if(string === 'Index') string = 'DataLight';
     else if(string === 'web-error') string = 'WebError';
+    else if(string === 'Computedobject') string = 'ComputedObject';
+
+    
 
     return string;
 }
