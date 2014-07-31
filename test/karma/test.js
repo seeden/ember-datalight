@@ -593,4 +593,83 @@ describe('Model with array', function(){
 		article.get('attributes.tags').removeObject('dog');
 		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
     });
+
+	it('can rollback', function() {
+		var article = Article.create({
+			title: 'Article about cats in house',
+			tags: ['house', 'car', 'cat']
+		});
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		Should(article.get('title')).be.exactly('Article about cats in house');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		Should(article.get('tags')).have.property('0', 'house');
+		Should(article.get('tags')).have.property('1', 'car');
+		Should(article.get('tags')).have.property('2', 'cat');
+
+		article.rollback();
+
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(0);
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(false);
+
+		article.get('attributes.tags').pushObject('dog');
+
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(1);
+		Should(article.get('tags')).have.property('0', 'dog');	
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+    });
+
+    it('can setAsOriginal', function() {
+		var article = Article.create({
+			title: 'Article about cats in house',
+			tags: ['house', 'car', 'cat']
+		});
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		Should(article.get('title')).be.exactly('Article about cats in house');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		Should(article.get('tags')).have.property('0', 'house');
+		Should(article.get('tags')).have.property('1', 'car');
+		Should(article.get('tags')).have.property('2', 'cat');
+
+		article.setAsOriginal();
+
+		Should(article.get('title')).be.exactly('Article about cats in house');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		Should(article.get('tags')).have.property('0', 'house');
+		Should(article.get('tags')).have.property('1', 'car');
+		Should(article.get('tags')).have.property('2', 'cat');
+
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(false);
+
+		article.get('attributes.tags').pushObject('dog');
+
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('tags')).have.property('3', 'dog');	
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(true);
+
+
+		article.rollback();
+
+		Should(article.get('title')).be.exactly('Article about cats in house');
+		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		Should(article.get('tags')).have.property('0', 'house');
+		Should(article.get('tags')).have.property('1', 'car');
+		Should(article.get('tags')).have.property('2', 'cat');
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(false);
+    });
 });
