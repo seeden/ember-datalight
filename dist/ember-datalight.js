@@ -68,7 +68,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var Ember = __webpack_require__(4),
 		Promise = Ember.RSVP.Promise,
-		WebError = __webpack_require__(11),
+		WebError = __webpack_require__(21),
 		DataLight = __webpack_require__(3),
 		ModelBase = __webpack_require__(5),
 		RESTAdapter = __webpack_require__(6),
@@ -90,9 +90,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			}
 	
 			if(this.get('isNew')) {
-				return adapter.createRecord(this.constructor, this).then(function() {
-					self.set('isNew', false);
-				});
+				return adapter.createRecord(this.constructor, this);
 			}
 	
 			return adapter.updateRecord(this.constructor, this);
@@ -101,23 +99,25 @@ return /******/ (function(modules) { // webpackBootstrap
 		destroyRecord: function() {
 			var self = this;
 			var isNew = this.get('isNew');
-			var isDestroyed = this.get('isDestroyed');
+			var isRemoved = this.get('isRemoved');
 			var adapter = this.get('adapter');
 	
 			this.set('isDeleted', true);
 	
 			return new Ember.RSVP.Promise(function(resolve, reject) {
-				if(isDestroyed) {
+				if(isRemoved) {
 					return resolve();	
 				}
 	
 				if(isNew) {
-					self.destroy();
+					self.set('isRemoved', true);
+					//self.destroy();
 					return resolve();
 				}
 	
 				adapter.deleteRecord(self.constructor, self).then(function() {
-					self.destroy();
+					self.set('isRemoved', true);
+					//self.destroy();
 				}).then(resolve, reject);
 			});
 		},
@@ -132,21 +132,67 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		isEmpty: function (keyName) {
 			var str = this.get(keyName);
+			if(str instanceof Model) {
+				return false;
+			}
+	
 			return Ember.isEmpty(str);
 		},
 	
 		isBlank: function(keyName) {
 			var str = this.get(keyName);
 			return Ember.isBlank(str);
+		},
+	
+		resolveRelationships: function(ignoreAsync) {
+			var _this = this;
+			var promises = [];
+			ignoreAsync = ignoreAsync || false;
+	
+			var attributes = this.get('attributes');
+			attributes.forEach(function(name, meta) {
+				var options = meta.options;
+				if(options.async && !ignoreAsync) {
+					return;
+				}
+	
+				if(meta.isObject && meta.subModel) {
+					promises.push(meta.subModel.resolveRelationships(ignoreAsync));
+					return;
+				}
+	
+				if(meta.options.belongsTo) {
+					promises.push(this.get('name'));
+					return;
+				}
+			}, this);
+	
+			return Ember.RSVP.Promise.all(promises).then(function(){
+				return _this;
+			});
 		}
 	});
 	
 	Model.reopenClass({
+		isModel: true,
+	
 		adapter: RESTAdapter.create({}),
 		attribute: attribute,
 	
 		primaryKey: 'id',
 		type: null,
+		included: [],
+	
+		resolveMultipleRecords: function(records) {
+			var promises = [];
+	
+			for(var i=0; i<records.length; i++) {
+				var record = records[i];
+				promises.push(record.resolveRelationships());	
+			}
+	
+			return Ember.RSVP.Promise.all(promises);
+		},
 	
 		find: function(id) {
 			var type = Ember.typeOf(id);
@@ -159,31 +205,127 @@ return /******/ (function(modules) { // webpackBootstrap
 				return this.findMany(id);
 			}
 	
+			return this.findByID(id);
+		},
+	
+		findByID: function(id) {
 			return PromiseObject.create({
-				promise: Promise.cast(this.adapter.find(this, id))
+				promise: this.adapter.findByID(this, id).then(function(record) {
+					return record.resolveRelationships();
+				})
 			});
 		},
 	
 		findAll: function(sinceToken) {
+			var _this = this;
 			return PromiseArray.create({
-				promise: this.adapter.findAll(this, sinceToken)
+				promise: this.adapter.findAll(this, sinceToken).then(function(records) {
+					return _this.resolveMultipleRecords(records);
+				})
 			});
 		},
 	
 		findQuery: function(query) {
+			var _this = this;
 			return PromiseArray.create({
-				promise: this.adapter.findQuery(this, query)
+				promise: this.adapter.findQuery(this, query).then(function(records) {
+					return _this.resolveMultipleRecords(records);
+				})
 			});
 		},
 	
 		findMany: function(ids) {
+			var _this = this;
 			return PromiseArray.create({
-				promise: this.adapter.findMany(this, ids)
+				promise: this.adapter.findMany(this, ids).then(function(records) {
+					return _this.resolveMultipleRecords(records);
+				})
 			});
 		},
 	
+		/*
 		push: function() {
 			Ember.Logger.warn('Method push needs cached version of models');
+		},*/
+	
+		ajax: function(url, type, options, isArray) {
+			var Model = this;
+			var serializer = this.adapter.get('serializer');
+	
+			isArray = isArray || false;
+	
+			var promise = this.adapter.ajax(url, type, options).then(function(data) {
+				return serializer.deserialize(Model, null, data, isArray);
+			});
+	
+			if(isArray) {
+				return PromiseArray.create({ promise: Promise.cast(promise) });
+			} else {
+				return PromiseObject.create({ promise: Promise.cast(promise) });
+			}
+		},
+	
+		GET: function(url, options, isArray) {
+			return this.ajax(url, 'GET', options, isArray);
+		},
+	
+		POST: function(url, options, isArray) {
+			return this.ajax(url, 'POST', options, isArray);
+		},
+	
+		PUT: function(url, options, isArray) {
+			return this.ajax(url, 'PUT', options, isArray);
+		},
+	
+		DELETE: function(url, options, isArray) {
+			return this.ajax(url, 'DELETE', options, isArray);
+		},
+	
+		getRelatedModels: function(includedModels) {
+			var _this = this;
+			var used = {};
+			var models = [];
+	
+			includedModels = includedModels || [];
+	
+			this.eachComputedProperty(function(name, meta) {
+				if(!meta.options || !meta.options.belongsTo) {
+					return;
+				}
+	
+				var model = meta.options.belongsTo;
+				if(used[model.type] || _this === model) {
+					return;
+				}
+	
+				models.push(model);
+				used[model.type] = true;
+			});
+	
+			
+			//additional included models
+			for(var i=0; i<this.included.length; i++) {
+				var model = this.included[i];
+				if(used[model.type] || _this === model) {
+					continue;
+				}
+	
+				models.push(model);
+				used[model.type] = true;			
+			}
+	
+			//additional included models
+			for(var i=0; i<includedModels.length; i++) {
+				var model = includedModels[i];
+				if(used[model.type] || _this === model) {
+					continue;
+				}
+	
+				models.push(model);
+				used[model.type] = true;			
+			}
+	
+			return models;
 		}
 	});
 
@@ -204,7 +346,7 @@ return /******/ (function(modules) { // webpackBootstrap
 		serializer: null,
 	
 	
-		find: Ember.required(Function),
+		findByID: Ember.required(Function),
 	
 		/**
 		The `findAll()` method is called when you call `find` on the store
@@ -256,7 +398,7 @@ return /******/ (function(modules) { // webpackBootstrap
 		findMany: function(model, ids) {
 			var self = this;
 			var promise = Ember.RSVP.all(map(ids, function(id) {
-				return self.find(model, id);
+				return self.findByID(model, id);
 			}));
 	
 			return PromiseArray.create({
@@ -290,106 +432,172 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
-		DataLight = __webpack_require__(3);
+		DataLight = __webpack_require__(3),
+		ComputedObject = __webpack_require__(10);
 	
 	var ModelBase = module.exports = DataLight.ModelBase = Ember.Object.extend({
-		__data: null,
-		__attributes: null,
-	
-		isNew: false,
+		isNew: true,
 		isDeleted: false,
+		isRemoved: false,
+	
+		dirtyCount: 0,
+		dirtyNames: [],
+	
+		init: function() {
+			this._super();
+	
+			var dirtyCount = 0;
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				attributes[name].set('parent', this);
+			}
+	
+			//recompute dirty
+			this.childChanged();	
+		},
 	
 		attributes: function() {
-			var map = Ember.Map.create();
+			var map = {};
 	
-			this.constructor.eachComputedProperty(function(name, meta) {
-				if (!meta.isAttribute) {
+			this.constructor.eachComputedProperty(function(name, wrapper) {
+				if (!wrapper || !wrapper.isWrapper) {
 					return;
 				}
 	
-				map.set(name, meta);
+				map[name] = wrapper;
 			});
 	
 			return map;
-		},
+		}.property(),
 	
-		isDirty: function() {
+		childChanged: function(child) {
 			var dirtyCount = 0;
+			var dirtyNames = [];
+			var attributes = this.get('attributes');
 	
-			this.attributes().forEach(function(name, meta) {
-				if(meta.isDirty(this, name)) {
-					dirtyCount++;	
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+	
+				if(!wrapper.get('isDirty')) {
+					continue;
 				}
 	
-			}, this);
-	
-			return dirtyCount>0; 
-		},
-	
-		dirtyAttributes: function() {
-			var dirty = Ember.Map.create();
-	
-			this.attributes().forEach(function(name, meta) {
-				if(meta.isObject) {
-					var dirtyAttributes = this.get(name).dirtyAttributes();
-					if(dirtyAttributes.length>0) {
-						dirty.set(name, dirtyAttributes);
-					}
-				} else if(meta.isDirty(this, name)) {
-					dirty.set(name, this.get(name));
+				if(wrapper === child) {
+					this.propertyDidChange(name);
 				}
-			}, this);
 	
-			return dirty;
-		},
-	
-		rollback: function() {
-			this.__attributes = {};
-	
-			this.attributes().forEach(function(name, meta) {
-				if(meta.isObject) {
-					this.get(name).rollback();
-				}
-			}, this);
-	
-			this.set('isDirty', false);
-		},
-	
-		saved: function() {
-			for(var key in this.__attributes) {
-				this.__data[key] = this.__attributes[key];
+				dirtyCount++;
+				dirtyNames.push(name);
 			}
 	
 			this.setProperties({
-				__attributes: {},
-				isNew: false
-			});
+				dirtyCount: dirtyCount,
+				dirtyNames: dirtyNames
+			});	
+		},
+	
+		isDirty: function() {
+			return this.get('dirtyCount')>0;
+		}.property('dirtyCount').readOnly(),
+	
+		dirtyAttributes: function() {
+			var dirty = Ember.Map.create();
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+				if(wrapper.get('isDirty')) {
+					continue;
+				}
+	
+				dirty.set(name, wrapper);
+			}
+	
+			return dirty;
+		}.property('dirtyCount', 'dirtyNames').readOnly(),
+	
+		rollback: function() {
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				attributes[name].rollback();
+			}
+	
+			return this;
+		},
+	
+		setAsOriginal: function() {
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				attributes[name].setAsOriginal();
+			}
+	
+			this.set('isNew', false);
+			return this;
 		},
 	
 		toJSON: function(fn) {
 			var properties = {};
+			var attributes = this.get('attributes');
 	
-			//get attributes
-			this.attributes().forEach(function(name, meta) {
-				if(fn && fn(name, meta) === false) {
-					return;
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+				if(fn && fn(name, wrapper) === false) {
+					continue;
 				}
 	
-				if(meta.isObject) {
-					properties[name] = meta.subModel.toJSON(fn);
-				} else {
-				
-					properties[name] = meta.getValue(this, name);
-				}
-			}, this);
+				properties[name] = wrapper.get('value');
+			}
 	
 			return properties;
 		},
 	
+		setupData: function(data, partial, rollback) {
+			var json = this.toJSON();
+	
+			if (partial) {
+				Ember.merge(json, data);
+			} else {
+				json = data;
+			}
+	
+			if(rollback) {
+				this.rollback();
+			}
+	
+			this.setProperties(json);
+			this.setAsOriginal();
+	
+			return this;
+		},
+	
+		adopt: function(record) {
+			var data = record.toJSON();
+			this.setupData(data, false, true);
+		},
+	
+	
+		/*************  PART BOTTOM IS NOT READY FOR NEW STRUCTURE  **************/
+	
 		copy: function() {
-			var properties = this.getProperties(['__data', '__attributes', 'isNew', 'isDeleted']);
+			var properties = this.getProperties(['isNew', 'isDeleted', 'isRemoved']);
 			var data = Ember.$.extend({}, properties);
 			return this.constructor.create(data);
+		}
+	});
+	
+	
+	ModelBase.reopenClass({
+	
+		buildRecord: function(data) {
+			var model = this.create({});
+	
+			model.setupData(data);
+			model.setAsOriginal();
+	
+			return model;
 		}	
 	});
 
@@ -400,11 +608,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
-		WebError = __webpack_require__(11),
+		WebError = __webpack_require__(21),
 		DataLight = __webpack_require__(3),
 		Adapter = __webpack_require__(2),
-		RESTSerializer = __webpack_require__(10);
-	
+		RESTSerializer = __webpack_require__(11);
 	
 	var type = {
 		GET: 'GET',
@@ -419,11 +626,11 @@ return /******/ (function(modules) { // webpackBootstrap
 		namespace: null,
 		serializer: RESTSerializer.create({}),
 	
-		find: function(Model, id) {
+		findByID: function(Model, id) {
 			var serializer = this.get('serializer');
 	
 			return this.ajax(this.buildURL(Model, id), type.GET).then(function(data) {
-				return serializer.deserialize(Model, data);
+				return serializer.deserialize(Model, null, data);
 			});
 		},
 	
@@ -452,7 +659,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			var serializer = this.get('serializer');
 	
 			return this.ajax(this.buildURL(Model), type.GET, { data: query }).then(function(data) {
-				return serializer.deserialize(Model, data, true);
+				return serializer.deserialize(Model, null, data, true);
 			});
 		},
 	
@@ -469,9 +676,12 @@ return /******/ (function(modules) { // webpackBootstrap
 		new records.
 		*/
 		createRecord: function(Model, record) {
+			var serializer = this.get('serializer');
 			var data = this.serialize(Model, record, { type: type.POST });
 	
-			return this.ajax(this.buildURL(Model), type.POST, { data: data });
+			return this.ajax(this.buildURL(Model), type.POST, { data: data }).then(function(data) {
+				return serializer.deserialize(Model, record, data);
+			});
 		},
 	
 		/**
@@ -479,10 +689,13 @@ return /******/ (function(modules) { // webpackBootstrap
 		a record.
 		*/
 		updateRecord: function(Model, record) {
+			var serializer = this.get('serializer');
 			var id = record.get(Model.primaryKey);
 			var data = this.serialize(Model, record, { type: type.PUT });
 	
-			return this.ajax(this.buildURL(Model, id), type.PUT, { data: data });
+			return this.ajax(this.buildURL(Model, id), type.PUT, { data: data }).then(function(data) {
+				return serializer.deserialize(Model, record, data);
+			});
 		},
 	
 	
@@ -545,7 +758,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 			var status = response.status || 500;
 	
-			console.log(message);
 			return new WebError(status, message);
 		},
 	
@@ -563,7 +775,11 @@ return /******/ (function(modules) { // webpackBootstrap
 				throw new Error('Model type is undefined');
 			}
 	
-			return Model.type+'s';
+			if(Model.typePlural) {
+				return Model.typePlural;
+			}
+	
+			return Model.type + 's';
 		},
 	
 		GET: function(url, options) {
@@ -611,129 +827,68 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var Ember = __webpack_require__(4),
 		DataLight = __webpack_require__(3),
-		ModelBase = __webpack_require__(5);
+		ModelBase = __webpack_require__(5),
+		Wrapper = __webpack_require__(12),
+		MixedWrapper = __webpack_require__(13),
+		ObjectWrapper = __webpack_require__(14),
+		StringWrapper = __webpack_require__(15),
+		NumberWrapper = __webpack_require__(16),
+		BooleanWrapper = __webpack_require__(17),
+		DateWrapper = __webpack_require__(18),
+		ModelWrapper = __webpack_require__(19),
+		ArrayWrapper = __webpack_require__(20);
 	
-	function isDirty(obj, key) {
-		var meta = obj.constructor.metaForProperty(key);
-		if(meta.isObject) {
-			return meta.subModel.isDirty();
-		}
-	
-		return (typeof obj.__attributes[key] !== 'undefined');
-	}
-	
-	function getValue(obj, key, deserialize, useRelationship) {
-		var meta = obj.constructor.metaForProperty(key);
-		var options = meta.options;
-		var value = null;
-	
-		//return latest unsaved value
-		if(typeof obj.__attributes[key] !== 'undefined') {
-			value = obj.__attributes[key];
-		} else if(typeof obj.__data[key] !== 'undefined') {
-		 	//return saved value
-			value = obj.__data[key];
-		} else if(typeof options.defaultValue === 'function') {
-			//return default value from function
-			value = options.defaultValue(obj, key);
-		} else {
-			value = options.defaultValue;
-		}
-	
-		var isDefined = typeof value !== 'undefined';
-	
-		if(isDefined && useRelationship && options.belongsTo) {
-			var model = options.belongsTo;
-	
-			return meta.isArray 
-				? model.findMany(value)
-				: model.find(value);
-		}
-	
-		if(meta.type && meta.type.deserialize) {
-			return meta.type.deserialize(value);
-		}
-	
-		return value;
-	}
-	
-	function typeCast(value, type) {
-		var types = [String, Number, Boolean, Date];
-		var valueType = Ember.typeOf(value);
+	function createWrapper(type, options) {
+		var typeOfType = Ember.typeOf(type),
+			wrapper = null;
 	
 		if(!type) {
-			return value;
-		} 
+			wrapper = MixedWrapper;
+		} else if(type === String) {
+			wrapper = StringWrapper;
+		} else if(type === Number) {
+			wrapper = NumberWrapper;
+		} else if(type === Boolean) {
+			wrapper = BooleanWrapper;
+		} else if(type === Date) {
+			wrapper = DateWrapper;
+		} else if(type.isWrapper) {
+			//user added instance of wrapper as parameter
+			return type;
+		} else if(type.isModel) {
+			//user added model class as parameter
+			options.model = type;
+			wrapper = ModelWrapper;
+		} else if(typeOfType === 'array') {
+			if(type.length>1) {
+				throw new Error('Array wrapper can handle max one wrapper');
+			}
 	
-		if(typeof value === 'undefined') {
-			return 'undefined';
+			options.wrapper = createWrapper(type[0], {});
+			wrapper = ArrayWrapper;
+		} else if(typeOfType === 'object') {
+			options.obj = ComputedObject.build(type);
+			wrapper = ObjectWrapper;
 		}
 	
-		if(type === Array) {
-			return (valueType==='array')
-				? value
-				: [value];
+		if(!wrapper){
+			throw new Error('Type of wrapper is unrecognized');
 		}
 	
-		if(types.contains(type)) {
-			return type(value);
-		}
-	
-		return type.serialize(value);
+		return wrapper.create(options);
 	}
 	
-	module.exports = DataLight.Attribute = function attribute(type, options) {
-		options = options || {};
-		options.readOnly = options.readOnly || false;
-		options.belongsTo = options.belongsTo || false;
+	var attribute = DataLight.attribute = module.exports =  function attribute(type, options) {
+		var wrapper = createWrapper(type, options || {});
 	
-		var isObject = (type !== null && typeof type === 'object');
-	
-		if(isObject) {
-			var SubModel = ModelBase.extend(type);
-			var subModel = SubModel.create({});
-		}
-	
-		var meta = {
-			type: type,
-			options: options,
-			isObject: isObject,
-			subModel: subModel,
-			isArray: Ember.typeOf(type) === 'array',
-			isAttribute: true,
-			isDirty: isDirty,
-			getValue: getValue
-		};
-	
-		return Ember.computed('__data', '__attributes', function(key, value) {
-			if(!this.__attributes) {
-				this.__attributes = {};
-			}
-	
-			if(!this.__data) {
-				this.__data = {};
-			}
-	
+		return Ember.computed(function(key, value) {
 			if (arguments.length > 1) {
-				if(options.readOnly) {
-					throw new Error('Property ' + key + ' is read only');
-				}
-	
-				if(isObject) {
-					subModel.setProperties(value);
-				} else {
-					value = typeCast(value, type);
-	
-					if(typeof this.__data[key] === 'undefined' || this.__data[key] !== value) {
-						this.__attributes[key] = value;
-					} else if(typeof this.__attributes[key] !== 'undefined') {
-						delete this.__attributes[key];
-					}
-				}
+				wrapper.set('value', value);
 			} 
 	
-			return isObject ? subModel : getValue(this, key, true, true);
-		}).meta(meta);
+			//default behavior is computed for templates, value is used for storing to database
+			return wrapper.get('computed');
+		}).meta(wrapper);
 	};
 
 /***/ },
@@ -742,16 +897,627 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 	
+	var Ember = __webpack_require__(4);
+	
+	var ComputedObject = module.exports = Ember.Object.extend({
+		attributes: Ember.computed(function() {
+			var map = {};
+	
+			this.constructor.eachComputedProperty(function(name, wrapper) {
+				if (!wrapper || !wrapper.isWrapper) {
+					return;
+				}
+	
+				map[name] = wrapper;
+			});
+	
+			return map;
+		})
+	});
+	
+	ComputedObject.reopenClass({
+		build: function(obj) {
+			return ComputedObject.extend(obj).create();
+		}
+	});
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
 	var Ember = __webpack_require__(4),
 		DataLight = __webpack_require__(3),
-		JSONSerializer = __webpack_require__(12);
+		JSONSerializer = __webpack_require__(22);
 	
 	var RESTSerializer = module.exports = DataLight.RESTSerializer = JSONSerializer.extend({
 		
 	});
 
 /***/ },
-/* 11 */
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Ember = __webpack_require__(4);
+	
+	var Wrapper = module.exports = Ember.Object.extend(Ember.Copyable, {
+		__value: void 0, //set as undefined
+		__original: void 0, //stored value that can be different from default value
+		__defaultValue: void 0,
+	
+		name: null,  //custom name for toJSON  - not implemented
+		readOnly: false,
+	
+		canBeNull: true,
+		canBeUndefined: true,
+	
+		handleNull: true,
+		handleUndefined: true,
+	
+		isWrapper: true,
+	
+		parent: null,
+	
+		copy: function() {
+			properties = ['value', 'original', 'defaultValue', 'name', 'readOnly', 'canBeNull', 'canBeUndefined', 'handleNull', 'handleUndefined'];
+			return this.constructor.create(this.getProperties(properties));
+		},
+	
+		init: function() {
+			this._super();
+	
+			var props = this.getProperties(['value', 'defaultValue', 'canBeNull', 'canBeUndefined']);
+	
+			if(!props.canBeNull && (props.value === null || props.defaultValue === null)) {
+				throw new Error('Can not be null');	
+			} else if(!props.canBeUndefined && (typeof props.value === 'undefined' || typeof props.defaultValue === 'undefined')) {
+				throw new Error('Can not be undefined');	
+			}
+		},
+	
+		value: function(key, value) {
+			// setter
+			if (arguments.length > 1) {
+				if(this.get('readOnly')) {
+					throw new Error('Variable is read only');
+				} else if(value === null && !this.get('canBeNull')) {
+					throw new Error('Can not be null');
+				} else if(typeof value === 'undefined' && !this.get('canBeUndefined')) {
+					throw new Error('Can not be undefined');
+				}
+	
+				this.set('__value', this._preSerialize(value));
+			}
+	
+			//getter
+			var actualValue = this._preDeserialize(this.get('__value'));
+	
+			if(typeof actualValue === 'undefined') {
+				actualValue = this.get('defaultValue');
+			}
+	
+			return actualValue;
+		}.property('__value', 'defaultValue'),
+	
+		defaultValue: function(key, value) {
+			if (arguments.length > 1) {
+				this.set('__defaultValue', this._preSerialize(value));	
+			}
+	
+			var defaultValue = this.get('__defaultValue');
+			if(typeof defaultValue === 'function') {
+				defaultValue = defaultValue();
+			}
+	
+			return this._preDeserialize(defaultValue);
+		}.property(),	
+	
+		original: function(key, value) {
+			if (arguments.length > 1) {
+				this.set('__original', this._preSerialize(value));	
+			}
+	
+			return this._preDeserialize(this.get('__original'));
+		}.property('__original'),
+	
+		setAsOriginal: function(clearValue) {
+			this.set('original', this.get('value'));
+		},
+	
+		_preSerialize: function(value) {
+			if(value === null && this.get('handleNull')) {
+				return value;
+			} else if(typeof value === 'undefined' && this.get('handleUndefined')) {
+				return value;
+			}
+	
+			return this._serialize(value);
+		},
+	
+		_preDeserialize: function(value) {
+			if(value === null && this.get('handleNull')) {
+				return value;
+			} else if(typeof value === 'undefined' && this.get('handleUndefined')) {
+				return value;
+			}
+	
+			return this._deserialize(value);
+		},	
+	
+		//set value
+		_serialize: function(value) {
+			throw new Error('Serialize is not implemented');
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			throw new Error('Deserialize is not implemented');
+		},
+	
+		isDefined: function() {
+			return typeof this.get('value') !== 'undefined';
+		}.property('value').readOnly(),
+	
+		isNull: function() {
+			return this.get('value') === null;
+		}.property('value').readOnly(),
+	
+		rollback: function() {
+			if(!this.get('isDirty')) {
+				return;
+			}
+	
+			var props = this.getProperties('value', 'original');
+			this.set('value', props.original);
+		},
+	
+		isDirty: function() {
+			var props = this.getProperties('value', 'original', 'defaultValue');
+			return props.value !== props.defaultValue && props.value !== props.original;
+		}.property('value', 'original', 'defaultValue').readOnly(),
+	
+		parentChanged: function() {
+			var parent = this.get('parent');
+			if(!parent) {
+				return;
+			}
+	
+			parent.childChanged(this);
+		}.observes('value'),
+	
+		childChanged: function() {
+			throw new Error('Method childChanged is not implemented');
+		},
+	
+		/**
+		 * This function is used for templates
+		 * @return {[type]} [description]
+		 */
+		computed: function() {
+			return this.get('value');
+		}.property('value').readOnly()
+	});
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var MixedWrapper = module.exports = Wrapper.extend({
+		//set value
+		_serialize: function(value) {
+			return value;
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value;
+		}
+	});
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		Wrapper = __webpack_require__(12),
+		ComputedObject = __webpack_require__(10);
+	
+	var ObjectWrapper = module.exports = Wrapper.extend({
+		obj: null, //mandatory property
+	
+		dirtyCount: 0,
+		dirtyNames: [],
+	
+		init: function() {
+			var obj = this.get('obj');
+			if(!obj) {
+				throw new Error('Object need property named obj defined');
+			}
+	
+			//init object with actual values
+			this.set('__value', obj);
+	
+			//set parent 
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				attributes[name].set('parent', this);
+			}
+	
+			//recompute dirty
+			this.childChanged();
+		},
+	
+		attributes: function() {
+			return this.get('__value.attributes');
+		}.property('__value'),
+	
+		//set value
+		_serialize: function(properties) {
+			var obj = this.get('__value');
+			obj.setProperties(properties);
+			return obj;
+		},
+	
+		//get value
+		_deserialize: function(obj) {
+			var data = {};
+	
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+				data[name] = wrapper.get('value');
+			}
+	
+			return data;
+		},
+	
+		rollback: function() {
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				attributes[name].rollback();
+			}
+		},
+	
+		childChanged: function(child) {
+			var dirtyCount = 0;
+			var dirtyNames = [];
+			var attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+				if(!wrapper.get('isDirty')) {
+					continue;
+				}
+	
+				if(wrapper === child) {
+					this.propertyDidChange(name);
+				}
+	
+				dirtyCount++;
+				dirtyNames.push(name);
+			}
+	
+			this.setProperties({
+				dirtyCount: dirtyCount,
+				dirtyNames: dirtyNames
+			});	
+		},
+	
+		isDirty: function() {
+			return this.get('dirtyCount')>0;
+		}.property('dirtyCount').readOnly(),
+	
+		computed: function() {
+	  		return this.get('__value');
+	  	}.property('__value').readOnly()
+	});
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var StringWrapper = module.exports = Wrapper.extend({
+		//set value
+		_serialize: function(value) {
+			return String(value);
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value;
+		}
+	});
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var NumberWrapper = module.exports = Wrapper.extend({
+		//set value
+		_serialize: function(value) {
+			return Number(value);
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value;
+		},
+	
+		isNaN: function() {
+			return isNaN(this.get('value'));
+		}.property('value').readOnly()
+	});
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var BooleanWrapper = module.exports = Wrapper.extend({
+		//set value
+		_serialize: function(value) {
+			if(typeof value === 'string') {
+				value = value.toLowerCase();
+				if(value==='true' || value==='yes' || value==='1') {
+					return true;
+				} 
+				
+				return false;
+			}
+	
+			return Boolean(value);
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value;
+		}
+	});
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var DateWrapper = module.exports = Wrapper.extend({
+		//set value
+		_serialize: function(value) {
+			return Date(value);
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value.toString();
+		}
+	});
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Wrapper = __webpack_require__(12);
+	
+	var ModelWrapper = module.exports = Wrapper.extend({
+		model: null,
+		async: true,
+	
+		isModel: true,
+	
+		//set value
+		_serialize: function(value) {
+			var _this = this;
+	
+			//load computed property imadiately
+			if(!this.get('async')) {
+				setTimeout(function() {
+					_this.get('computed');
+				}, 0);
+			}
+	
+			return value;
+		},
+	
+		//get value
+		_deserialize: function(value) {
+			return value;
+		},
+	
+		//retrive promise
+		computed: function() {
+			var value = this.get('value');
+			var model = this.get('model');
+	
+			if(!model || !model.find) {
+				throw new Error('Model is not defined or has no implemented method find');
+			}
+	
+			return model.find(value);
+		}.property('value', 'model').readOnly()
+	});
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		Wrapper = __webpack_require__(12),
+		ModelWrapper = __webpack_require__(19),
+		MixedWrapper = __webpack_require__(13),
+		Model = __webpack_require__(1);
+	
+	var ArrayWrapper = module.exports = Wrapper.extend(Ember.MutableArray, {
+		wrapper: null,
+		async: true,
+	
+		copy: function() {
+			properties = ['value', 
+				'original', 
+				'defaultValue', 
+				'readOnly', 
+				'canBeNull', 
+				'canBeUndefined', 
+				'handleNull', 
+				'handleUndefined', 
+				'wrapper', 
+				'async'];
+	
+			return this.constructor.create(this.getProperties(properties));
+		},
+	
+		init: function() {
+			if(!this.get('wrapper')) {
+				this.set('wrapper', MixedWrapper.create({}));	
+			}
+	
+			this.setProperties({
+				'original': [],
+				'__defaultValue': []
+			});
+		},
+	
+		//set value
+		_serialize: function(items) {
+			var wrapper = this.get('wrapper');
+			if(!wrapper) {
+				throw new Error('Array wrapper is not defined');
+			}
+	
+			if(Ember.typeOf(items) !== 'array') {
+				throw new Error('Items is not an array');
+			}
+	
+			var newItems = Ember.A([]);
+			for(var i=0; i<items.length; i++) {
+				var item = items[i];
+	
+				var newItem = wrapper.copy();
+				newItem.set('value', item);
+				//newItem.set('parent', this);
+	
+				newItems.pushObject(newItem);
+			}
+	
+			//load computed property imadiately
+			if(!this.get('async')) {
+				setTimeout(function() {
+					_this.get('computed');	
+				}, 0);			
+			}
+	
+			return newItems;
+		},
+	
+		//get value
+		_deserialize: function(items) {
+			var newItems = [];
+	
+			for(var i=0; i<items.length; i++) {
+				newItems.push(items[i].get('value'));
+			}
+	
+			return newItems;
+		},
+	
+		/*Ember.Enumerable mixin*/
+		length: function() {
+			var items = this.get('__value');
+			return (items && items.length) ? items.length : 0;
+		}.property('value').readOnly(),
+		
+		/*Ember.Array mixin*/
+		objectAt: function(idx) {
+			var items = this.get('__value');
+			return (items && idx<items.length) ? items[idx].get('value') : void 0;
+	  	},
+	
+	  	replace: function(idx, amt, objects) {
+	  		if(this.get('readOnly')) {
+				throw new Error('Variable is read only');
+			}
+	
+	  		objects = objects || Ember.A([]);
+	  		objects = this._preSerialize(objects);
+	
+	  		var items = this.get('__value') || Ember.A([]);
+	
+			var len = objects.get('length');
+			this.arrayContentWillChange(idx, amt, len);
+			this.propertyWillChange('__value');
+	
+			if (len === 0) {
+				items.splice(idx, amt);
+	    	} else {
+	      		Ember.EnumerableUtils.replace(items, idx, amt, objects);
+	    	}
+	
+	    	this.propertyDidChange('__value');
+	    	this.arrayContentDidChange(idx, amt, len);
+	    	return this;
+	  	},
+	
+	  	isDirty: function() {
+	  		var original = this.get('original');
+	  		var items = this.get('value');
+	
+	  		if(!original || !items) {
+	  			return items !== original;
+	  		}
+	
+	  		if(original.length != items.length) {
+	  			return true;
+	  		}
+	
+	  		for(var i=0; i<original.length; i++) {
+	  			if(original[i]!==items[i]) {
+	  				return true;
+	  			}
+	  		}
+	
+	  		return false;
+		}.property('value', 'original').readOnly(),
+	
+	  	computed: function() {
+	  		var items = this.get('value');
+	  		var wrapper = this.get('wrapper');
+	
+	  		if(wrapper && wrapper.get('isModel')) {
+	  			return wrapper.get('model').findMany(items);
+	  		}
+	
+	  		return items;
+	  	}.property('value', 'wrapper').readOnly()
+	});
+
+/***/ },
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
@@ -822,7 +1588,7 @@ return /******/ (function(modules) { // webpackBootstrap
 		//Exports
 		//AMD
 		if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(13)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (BaseError) {
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(23)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (BaseError) {
 				return defineWebError(BaseError);
 			}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		}
@@ -840,7 +1606,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	} (this));
 
 /***/ },
-/* 12 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -850,36 +1616,52 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var JSONSerializer = module.exports = DataLight.JSONSerializer = Ember.Object.extend({
 		serialize: function(Model, record, options) {
+			var isNew = record.get('isNew');
+			
 			return record.toJSON(function(key, meta) {
+				if(meta.options.readOnly) {
+					return false;
+				}
+	
 				if(options.type === 'PUT' && meta.options.put === false) {
 					return false;
 				}
 			});
 		},
 	
-		deserialize: function(Model, data, isArray) {
+		deserialize: function(Model, record, content, isArray, includedModels) {
 			isArray = isArray || false;
 	
 			var field = this.fieldForType(Model, isArray);
-			var modelData = data[field];
+			var modelData = content[field];
+	
+			this.deserializeRelationships(Model, content, includedModels);
 	
 			if(isArray) {
-				return this._deserializeArray(Model, modelData, data);
+				return this._deserializeArray(Model, modelData, content);
+			}
+	
+			if(record) {
+				return this._deserializeRecord(record, modelData, content);
 			}
 			
-			return this._deserializeSingle(Model, modelData, data);
+			return this._deserializeSingle(Model, modelData, content);
 		},
 	
-		_deserializeSingle: function(Model, modelData, content, disableDR) {
-			var model = Model.create(modelData);
+		_deserializeRecord: function(record, modelData, content) {
+			record.setupData(modelData, false, true);
+			record.set('content', content);
+			record.saved();
 	
+			return record;
+		},	
+	
+		_deserializeSingle: function(Model, modelData, content) {
+			var model = Model.buildRecord(modelData);
 			model.set('content', content);
-			model.saved();	
 	
-			if(!disableDR) {
-				this._deserializeRelationships(Model, content);	
-			}
 			
+	
 			return model;
 		},
 	
@@ -889,32 +1671,38 @@ return /******/ (function(modules) { // webpackBootstrap
 			for(var i=0; i<modelDatas.length; i++) {
 				models.push(this._deserializeSingle(Model, modelDatas[i], content, true));
 			}
-	
-			this._deserializeRelationships(Model, content, true);
 		
 			return models;
 		},
 	
-		_deserializeRelationships: function(Model, content, isArray) {
-			var self = this;
+		deserializeRelationships: function(Model, content, includedModels) {
+			var _this = this;
 			var used = {};
 	
-			Model.eachComputedProperty(function(name, meta) {
-				if(!meta.options || !meta.options.belongsTo) {
-					return;
+			if(!content) {
+				return;
+			}
+	
+			var models = Model.getRelatedModels(includedModels);
+	
+			for(var i=0; i<models.length; i++) {
+				var RelatedModel = models[i];
+	
+				var type = _this.fieldForType(RelatedModel);
+				var typeArray = _this.fieldForType(RelatedModel, true);
+	
+				if(type && content[type]) {
+					RelatedModel.buildRecord(content[type]);
 				}
 	
-				var Model = meta.options.belongsTo;
-				var type = self.fieldForType(Model, isArray);
+				if(typeArray && content[typeArray]) {
+					var data = content[typeArray];
 	
-				if(!type || !content || used[type] || !content[type]) {
-					return;
+					for(var j=0; j<data.length; j++) {
+						RelatedModel.buildRecord(data[j]);		
+					}
 				}
-	
-				used[type] = true;
-	
-				Model.push(content[type]);
-			});
+			}
 		},
 	
 		fieldForType: function(Model, isArray) {
@@ -922,12 +1710,16 @@ return /******/ (function(modules) { // webpackBootstrap
 				throw new Error('Model type is undefined');
 			}
 	
+			if(isArray && Model.typePlural) {
+				return Model.typePlural;
+			}
+	
 			return isArray ? Model.type+'s' : Model.type;
 		}
 	});
 
 /***/ },
-/* 13 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {

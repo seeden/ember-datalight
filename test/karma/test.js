@@ -252,6 +252,8 @@ describe('Object Wrapper', function(){
 
 		Should(wrapper.get('isDefined')).be.exactly(true);
 		Should(wrapper.get('isNull')).be.exactly(false);
+
+		Should(wrapper.get('isDirty')).be.exactly(false);
     });
 });
 
@@ -357,7 +359,61 @@ describe('Model', function(){
 		Should(json).have.property('name', 'Zlatik');
 		Should(json).have.property('canEdit', true);
 		Should(json).have.property('created');
-    });  
+    }); 
+
+
+    it('can rollback', function() {
+		var user = User.create({
+			name: 'Zlatik',
+			age: 18,
+			canEdit: true,
+			created: Date.now()
+		});
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
+		Should(user.get('name')).be.exactly('Zlatik');
+		Should(user.get('age')).be.exactly(18);
+		Should(user.get('canEdit')).be.exactly(true);
+
+		user.rollback();
+
+		Should(user.get('name')).be.exactly('Zlatko Fedor');
+		Should(user.get('age')).be.exactly(undefined);
+		Should(user.get('canEdit')).be.exactly(false);
+		Should(user.get('created')).be.exactly(undefined);
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(false);
+    });
+
+
+    it('can setAsOriginal', function() {
+		var user = User.create({
+			name: 'Zlatik',
+			age: 18,
+			canEdit: true,
+			created: Date.now()
+		});
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
+		Should(user.get('name')).be.exactly('Zlatik');
+		Should(user.get('age')).be.exactly(18);
+		Should(user.get('canEdit')).be.exactly(true);
+
+		user.setAsOriginal();
+
+		Should(user.get('name')).be.exactly('Zlatik');
+		Should(user.get('age')).be.exactly(18);
+		Should(user.get('canEdit')).be.exactly(true);
+
+		Should(user.get('isNew')).be.exactly(false);
+		Should(user.get('isDirty')).be.exactly(false);
+    });    
+
 });
 
 
@@ -423,6 +479,54 @@ describe('Model with subobject', function(){
 
 		user.set('address.state', 'Italia');
 		Should(user.get('address.state')).be.exactly('Italia');
+    });
+
+    it('can rollback', function() {
+		var user = User.create({
+			address: {
+				city: 'Bratislava'
+			}
+		});
+
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly('Bratislava');
+
+		user.rollback();
+
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly(undefined);
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(false);
+    });
+
+
+    it('can setAsOriginal', function() {
+		var user = User.create({
+			address: {
+				city: 'Bratislava'
+			}
+		});
+
+
+		Should(user.get('isNew')).be.exactly(true);
+		Should(user.get('isDirty')).be.exactly(true);
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly('Bratislava');
+
+		user.setAsOriginal();
+
+		Should(user.get('address.state')).be.exactly('Slovakia');
+		Should(user.get('address.city')).be.exactly('Bratislava');
+
+		Should(user.get('isNew')).be.exactly(false);
+		Should(user.get('isDirty')).be.exactly(false);
     });
 });
 
