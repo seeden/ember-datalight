@@ -242,13 +242,13 @@ describe('Test Model', function(){
 
 describe('Object Wrapper', function(){
 	it('can create', function() {
-		var obj = ComputedObject.build({
-			name: DataLight.attribute(String, {defaultValue: 'Zlatko Fedor'})
+		var ObjectWrapperExt = ObjectWrapper.extend({
+			computedObject: ComputedObject.extend({
+				name: DataLight.attribute(String, {defaultValue: 'Zlatko Fedor'})	
+			})
 		});
 
-		var wrapper = ObjectWrapper.create({
-			obj: obj
-		});
+		var wrapper = ObjectWrapperExt.create({});
 
 		Should(wrapper.get('isDefined')).be.exactly(true);
 		Should(wrapper.get('isNull')).be.exactly(false);
