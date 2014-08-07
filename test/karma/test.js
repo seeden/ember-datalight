@@ -673,3 +673,203 @@ describe('Model with array', function(){
 		Should(article.get('isDirty')).be.exactly(false);
     });
 });
+
+describe('Model with array of objects', function(){
+	it('can extend', function() {
+		Article = Model.extend({
+			title: DataLight.attribute(String),
+			images: DataLight.attribute([{
+				file: DataLight.attribute(String)
+			}])
+		});
+
+		Should(Article.isModel).be.exactly(true);
+	});
+
+	it('can create with empty array', function() {
+		var article = Article.create({
+			title: "Title of article"
+		});
+
+		Should(article.get('title')).be.exactly('Title of article');
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(0);
+	});
+
+	it('can create with multiple images', function() {
+		var article = Article.create({
+			title: "Title of article2",
+			images: [{
+				file: "file1.jpg"
+			}, {
+				file: "file2.jpg"
+			}]
+		});
+
+		Should(article.get('title')).be.exactly('Title of article2');
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(2);
+
+		var images = article.get('images');
+		Should(images[0]).have.property('file', 'file1.jpg');
+		Should(images[1]).have.property('file', 'file2.jpg');
+
+		article.get('attributes.images').pushObject({});
+	});
+
+	it('can add one image', function() {
+		var article = Article.create({
+			title: "Title of article2",
+			images: [{
+				file: "file1.jpg"
+			}, {
+				file: "file2.jpg"
+			}]
+		});
+
+		article.get('attributes.images').pushObject({ file: 'file3.jpg' });
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(3);
+
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+	});	
+
+	it('can add multiple images', function() {
+		var article = Article.create({
+			title: "Title of article2",
+			images: [{
+				file: "file1.jpg"
+			}, {
+				file: "file2.jpg"
+			}]
+		});
+
+		article.get('attributes.images').pushObjects([{ 
+			file: 'file3.jpg' 
+		}, {
+			file: 'file4.jpg' 
+		}]);
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[3]).have.property('file', 'file4.jpg');
+	});	
+
+	it('can set as original', function() {
+		var article = Article.create({
+			title: "Title of article2",
+			images: [{
+				file: "file1.jpg"
+			}, {
+				file: "file2.jpg"
+			}]
+		});
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		article.get('attributes.images').pushObjects([{ 
+			file: 'file3.jpg' 
+		}, {
+			file: 'file4.jpg' 
+		}]);
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[3]).have.property('file', 'file4.jpg');
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		article.setAsOriginal();
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(false);
+
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[3]).have.property('file', 'file4.jpg');
+
+		article.get('attributes.images').pushObject({ file: 'file5.jpg' });
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(5);
+
+		var images = article.get('images');
+		Should(images[4]).have.property('file', 'file5.jpg');
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(true);
+
+
+		article.rollback();
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[3]).have.property('file', 'file4.jpg');
+
+		Should(article.get('isNew')).be.exactly(false);
+		Should(article.get('isDirty')).be.exactly(false);
+	});		
+});
+
+
+describe('Model with array of objects - readOnly', function(){
+	it('can extend', function() {
+		Article = Model.extend({
+			title: DataLight.attribute(String),
+			images: DataLight.attribute([{
+				id: DataLight.attribute(String, { readOnly: true }), 
+				file: DataLight.attribute(String)
+			}])
+		});
+
+		Should(Article.isModel).be.exactly(true);
+	});
+
+	it('can set as original', function() {
+		var article = Article.create({
+			title: "Title of article2",
+			images: [{
+				file: "file1.jpg"
+			}, {
+				file: "file2.jpg"
+			}]
+		});
+
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		article.get('attributes.images').pushObjects([{ 
+			file: 'file3.jpg' 
+		}, {
+			file: 'file4.jpg' 
+		}]);
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+
+		var images = article.get('images');
+		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[3]).have.property('file', 'file4.jpg');
+
+		Should(article.get('isNew')).be.exactly(true);
+		Should(article.get('isDirty')).be.exactly(true);
+
+		article.setupData({
+			title: "Title of article2",
+			images: [{
+				id: 323,
+				file: "file1.jpg"
+			}]
+		});
+
+		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(1);
+
+		var images = article.get('images');
+		Should(images[0]).have.property('file', 'file1.jpg');
+	});
+});
