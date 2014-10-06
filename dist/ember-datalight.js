@@ -9,44 +9,43 @@
 		root["ember-datalight"] = factory(root["Ember"]);
 })(this, function(__WEBPACK_EXTERNAL_MODULE_4__) {
 return /******/ (function(modules) { // webpackBootstrap
-/******/ 	
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
-/******/ 	
+/******/
 /******/ 	// The require function
 /******/ 	function __webpack_require__(moduleId) {
+/******/
 /******/ 		// Check if module is in cache
 /******/ 		if(installedModules[moduleId])
 /******/ 			return installedModules[moduleId].exports;
-/******/ 		
+/******/
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = installedModules[moduleId] = {
 /******/ 			exports: {},
 /******/ 			id: moduleId,
 /******/ 			loaded: false
 /******/ 		};
-/******/ 		
+/******/
 /******/ 		// Execute the module function
 /******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/ 		
+/******/
 /******/ 		// Flag the module as loaded
 /******/ 		module.loaded = true;
-/******/ 		
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
-/******/ 	
+/******/
+/******/
 /******/ 	// expose the modules object (__webpack_modules__)
 /******/ 	__webpack_require__.m = modules;
-/******/ 	
+/******/
 /******/ 	// expose the module cache
 /******/ 	__webpack_require__.c = installedModules;
-/******/ 	
+/******/
 /******/ 	// __webpack_public_path__
 /******/ 	__webpack_require__.p = "/public/dist/";
-/******/ 	
-/******/ 	
+/******/
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
 /******/ })
@@ -82,9 +81,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		}.property(),
 	
 		save: function() {
-			var self = this;
-			var adapter = this.get('adapter');
-			var isDeleted = this.get('isDeleted');
+			var adapter = this.get('adapter'),
+				isDeleted = this.get('isDeleted');
+	
 			if(isDeleted) {
 				return this.destroyRecord();
 			}
@@ -97,10 +96,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		destroyRecord: function() {
-			var self = this;
-			var isNew = this.get('isNew');
-			var isRemoved = this.get('isRemoved');
-			var adapter = this.get('adapter');
+			var _this = this,
+				isNew = this.get('isNew'),
+				isRemoved = this.get('isRemoved'),
+				adapter = this.get('adapter');
 	
 			this.set('isDeleted', true);
 	
@@ -110,14 +109,14 @@ return /******/ (function(modules) { // webpackBootstrap
 				}
 	
 				if(isNew) {
-					self.set('isRemoved', true);
-					//self.destroy();
+					_this.set('isRemoved', true);
+					//_this.destroy();
 					return resolve();
 				}
 	
-				adapter.deleteRecord(self.constructor, self).then(function() {
-					self.set('isRemoved', true);
-					//self.destroy();
+				adapter.deleteRecord(_this.constructor, _this).then(function() {
+					_this.set('isRemoved', true);
+					//_this.destroy();
 				}).then(resolve, reject);
 			});
 		},
@@ -136,11 +135,11 @@ return /******/ (function(modules) { // webpackBootstrap
 		 * @return {Promise}             [description]
 		 */
 		resolveRelationships: function(ignoreAsync) {
-			var _this = this;
-			var promises = [];
-			ignoreAsync = ignoreAsync || false;
+			var _this = this,
+				promises = [],
+				attributes = this.get('attributes');
 	
-			var attributes = this.get('attributes');
+			ignoreAsync = ignoreAsync || false;
 	
 			for(var name in attributes) {
 				var wrapper = attributes[name];
@@ -208,6 +207,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		findAll: function(sinceToken) {
 			var _this = this;
+	
 			return PromiseArray.create({
 				promise: this.adapter.findAll(this, sinceToken).then(function(records) {
 					return _this.resolveMultipleRecords(records);
@@ -217,6 +217,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		findQuery: function(query) {
 			var _this = this;
+	
 			return PromiseArray.create({
 				promise: this.adapter.findQuery(this, query).then(function(records) {
 					return _this.resolveMultipleRecords(records);
@@ -226,6 +227,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		findMany: function(ids) {
 			var _this = this;
+	
 			return PromiseArray.create({
 				promise: this.adapter.findMany(this, ids).then(function(records) {
 					return _this.resolveMultipleRecords(records);
@@ -239,8 +241,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		},*/
 	
 		ajax: function(url, type, options, isArray) {
-			var Model = this;
-			var serializer = this.adapter.get('serializer');
+			var Model = this,
+				serializer = this.adapter.get('serializer');
 	
 			isArray = isArray || false;
 	
@@ -272,9 +274,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		getRelatedModels: function(includedModels) {
-			var _this = this;
-			var used = {};
-			var models = [];
+			var _this = this,
+				used = {},
+				models = [];
 	
 			includedModels = includedModels || [];
 	
@@ -409,9 +411,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var Ember = __webpack_require__(4);
 	
-	var DataLight = module.exports = Ember.Namespace.create({
-	
-	});
+	var DataLight = module.exports = Ember.Namespace.create({});
 
 /***/ },
 /* 4 */
@@ -440,8 +440,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		init: function() {
 			this._super();
 	
-			var dirtyCount = 0;
-			var attributes = this.get('attributes');
+			var dirtyCount = 0,
+				attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				attributes[name].set('parent', this);
@@ -451,9 +451,24 @@ return /******/ (function(modules) { // webpackBootstrap
 			this.childChanged();	
 		},
 	
+		getWrapper: function(name) {
+			var _this = this,
+				wrapper = null;
+	
+			this.constructor.eachComputedProperty(function(wrapperName, meta) {
+				if (wrapperName!==name) {
+					return;
+				}
+	
+				wrapper = meta.getWrapper(_this, name);
+			});
+	
+			return wrapper;
+		},	
+	
 		attributes: function() {
-			var _this = this;
-			var map = {};
+			var _this = this,
+				map = {};
 	
 			this.constructor.eachComputedProperty(function(name, meta) {
 				if (!meta || !meta.isAttribute) {
@@ -467,9 +482,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		}.property(),
 	
 		childChanged: function(child) {
-			var dirtyCount = 0;
-			var dirtyNames = [];
-			var attributes = this.get('attributes');
+			var dirtyCount = 0,
+				dirtyNames = [],
+				attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				var wrapper = attributes[name];
@@ -497,8 +512,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		}.property('dirtyCount').readOnly(),
 	
 		dirtyAttributes: function() {
-			var dirty = Ember.Map.create();
-			var attributes = this.get('attributes');
+			var dirty = Ember.Map.create(),
+				attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				var wrapper = attributes[name];
@@ -534,8 +549,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		toJSON: function(fn) {
-			var properties = {};
-			var attributes = this.get('attributes');
+			var properties = {},
+				attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				var wrapper = attributes[name];
@@ -543,7 +558,7 @@ return /******/ (function(modules) { // webpackBootstrap
 					continue;
 				}
 	
-				properties[name] = wrapper.get('value');
+				properties[name] = wrapper.toJSON(fn, this);
 			}
 	
 			return properties;
@@ -670,8 +685,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		new records.
 		*/
 		createRecord: function(Model, record) {
-			var serializer = this.get('serializer');
-			var data = this.serialize(Model, record, { type: type.POST });
+			var serializer = this.get('serializer'),
+				data = this.serialize(Model, record, { 
+					type: type.POST 
+				});
 	
 			return this.ajax(this.buildURL(Model), type.POST, { data: data }).then(function(data) {
 				return serializer.deserialize(Model, record, data);
@@ -683,9 +700,11 @@ return /******/ (function(modules) { // webpackBootstrap
 		a record.
 		*/
 		updateRecord: function(Model, record) {
-			var serializer = this.get('serializer');
-			var id = record.get(Model.primaryKey);
-			var data = this.serialize(Model, record, { type: type.PUT });
+			var serializer = this.get('serializer'),
+				id = record.get(Model.primaryKey),
+				data = this.serialize(Model, record, { 
+					type: type.PUT 
+				});
 	
 			return this.ajax(this.buildURL(Model, id), type.PUT, { data: data }).then(function(data) {
 				return serializer.deserialize(Model, record, data);
@@ -706,21 +725,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	
 		ajax: function(url, type, options) {
-			var self = this;
-			var options = this._ajaxOptions(url, type, options);
+			var _this = this,
+				options = this._ajaxOptions(url, type, options);
 	
 			return new Ember.RSVP.Promise(function (resolve, reject) {
 				Ember.$.ajax(options).then(function(data) {
 					Ember.run(null, resolve, data);
 				}, function(response) {
-					Ember.run(null, reject, self._responseToError(response));
+					Ember.run(null, reject, _this._responseToError(response));
 				});
 			});
 		},
 	
 		_prepareURL: function(url) {
-			var host = this.get('host');
-			var namespace = this.get('namespace');
+			var host = this.get('host'),
+				namespace = this.get('namespace');
 	
 			if(namespace) {
 				url = namespace + url;
@@ -745,12 +764,12 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		_responseToError: function(response) {
-			var message = response.responseTest || response.statusText || 'Unknown error';
+			var message = response.responseTest || response.statusText || 'Unknown error',
+				status = response.status || 500;
+	
 			if(response.responseJSON && response.responseJSON.message) {
 				message = response.responseJSON.message;    
 			}
-	
-			var status = response.status || 500;
 	
 			return new WebError(status, message);
 		},
@@ -901,7 +920,14 @@ return /******/ (function(modules) { // webpackBootstrap
 			var wrapper = meta.getWrapper(this, key);
 	
 			if (arguments.length > 1) {
-				wrapper.set('value', value);
+				try {
+					wrapper.set('value', value);	
+				} catch(e) {
+					console.log('PROBLEM WITH>'+key);
+					throw e;
+				}
+	
+				
 			} 
 	
 			//default behavior is computed for templates, value is used for storing to database
@@ -919,8 +945,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var ComputedObject = module.exports = Ember.Object.extend({
 		attributes: Ember.computed(function() {
-			var _this = this;
-			var map = {};
+			var _this = this,
+				map = {};
 	
 			this.constructor.eachComputedProperty(function(name, meta) {
 				if (!meta || !meta.isAttribute) {
@@ -933,12 +959,6 @@ return /******/ (function(modules) { // webpackBootstrap
 			return map;
 		})
 	});
-	/*
-	ComputedObject.reopenClass({
-		build: function(obj) {
-			return ComputedObject.extend(obj).create();
-		}
-	});*/
 
 /***/ },
 /* 11 */
@@ -1026,9 +1046,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		//Exports
 		//AMD
 		if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(23)], __WEBPACK_AMD_DEFINE_RESULT__ = (function (BaseError) {
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(23)], __WEBPACK_AMD_DEFINE_RESULT__ = function (BaseError) {
 				return defineWebError(BaseError);
-			}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		}
 	
 		//CommonJS
@@ -1076,6 +1096,10 @@ return /******/ (function(modules) { // webpackBootstrap
 			} else if(!props.canBeUndefined && (typeof props.value === 'undefined' || typeof props.defaultValue === 'undefined')) {
 				throw new Error('Can not be undefined');	
 			}
+		},
+	
+		toJSON: function(fn) {
+			return this.get('value');
 		},
 	
 		copy: function() {
@@ -1173,9 +1197,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		}.property('value').readOnly(),
 	
 		rollback: function() {
-			/*if(!this.get('isDirty')) {
+			if(this.get('readOnly')) {
 				return;
-			}*/
+			}
 	
 			this.set('value', this.get('original'));
 		},
@@ -1310,6 +1334,21 @@ return /******/ (function(modules) { // webpackBootstrap
 			this.propertyDidChange('value');
 		},
 	
+		getWrapper: function(wrapperName) {
+			var wrapper = null,
+				attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				if (wrapperName===name) {
+					continue;
+				}
+	
+				wrapper = attributes[name];
+			}
+	
+			return wrapper;
+		},	
+	
 		attributes: function() {
 			var value = this.get('__value');
 			if(!value) {
@@ -1321,12 +1360,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		//set value
 		_serialize: function(properties) {
-			var computedObject = this.get('computedObject');
+			var computedObject = this.get('computedObject'),
+				obj = this.get('__value');
+	
 			if(!computedObject) {
 				throw new Error('ObjectWrapper class need computedObject defined');
 			}
 	
-			var obj = this.get('__value');
 			if(!obj) {
 				this.set('__value', obj = computedObject.create());
 			}
@@ -1338,9 +1378,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		//get value
 		_deserialize: function(obj) {
-			var data = {};
+			var data = {},
+				attributes = this.get('attributes');
 	
-			var attributes = this.get('attributes');
 			for(var name in attributes) {
 				data[name] = attributes[name].get('value');
 			}
@@ -1365,9 +1405,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		childChanged: function(child) {
-			var dirtyCount = 0;
-			var dirtyNames = [];
-			var attributes = this.get('attributes');
+			var dirtyCount = 0,
+				dirtyNames = [],
+				attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				var wrapper = attributes[name];
@@ -1411,8 +1451,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	
 	  	resolveRelationships: function(ignoreAsync) {
-	  		var promises = [];
-			var attributes = this.get('attributes');
+	  		var promises = [],
+	  			attributes = this.get('attributes');
 	
 			for(var name in attributes) {
 				promises.push(attributes[name].resolveRelationships(ignoreAsync));
@@ -1422,7 +1462,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		setupData: function(data, partial) {
-			var json = this.get('value');
+			var json = this.get('value'),
+				attributes = this.get('attributes');
+				
+			data = data || {};
 	
 			if (partial) {
 				Ember.merge(json, data);
@@ -1430,7 +1473,6 @@ return /******/ (function(modules) { // webpackBootstrap
 				json = data;
 			}
 	
-			var attributes = this.get('attributes');
 			for(var name in attributes) {
 				attributes[name].setupData(json[name], partial);
 				this.propertyDidChange(name);
@@ -1439,6 +1481,22 @@ return /******/ (function(modules) { // webpackBootstrap
 			this.setAsOriginal(json);
 			this.propertyDidChange('value');
 			return this;
+		},
+	
+		toJSON: function(fn, parent) {
+			var properties = {},
+				attributes = this.get('attributes');
+	
+			for(var name in attributes) {
+				var wrapper = attributes[name];
+				if(fn && fn(name, wrapper) === false) {
+					continue;
+				}
+	
+				properties[name] = wrapper.toJSON(fn, this);
+			}
+	
+			return properties;
 		}
 	});
 	
@@ -1552,7 +1610,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var DateWrapper = module.exports = Wrapper.extend({
 		//set value
 		_serialize: function(value) {
-			return Date(value);
+			return new Date(value);
 		},
 	
 		//get value
@@ -1819,7 +1877,6 @@ return /******/ (function(modules) { // webpackBootstrap
 		rollback: function() {
 			this._super();
 	
-	
 			//notify childs
 			var items = this.get('__value') || Ember.A([]);
 			for(var i=0; i<items.length; i++) {
@@ -1861,12 +1918,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		serialize: function(Model, record, options) {
 			var isNew = record.get('isNew');
 			
-			return record.toJSON(function(key, meta) {
-				if(meta.options.readOnly) {
-					return false;
-				}
-	
-				if(options.type === 'PUT' && meta.options.put === false) {
+			return record.toJSON(function(key, wrapper) {
+				if(wrapper.get('readOnly')) {
 					return false;
 				}
 			});
@@ -1875,8 +1928,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		deserialize: function(Model, record, content, isArray, includedModels) {
 			isArray = isArray || false;
 	
-			var field = this.fieldForType(Model, isArray);
-			var modelData = content[field];
+			var field = this.fieldForType(Model, isArray),
+				modelData = content[field];
 	
 			this.deserializeRelationships(Model, content, includedModels);
 	
@@ -1916,8 +1969,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		},
 	
 		deserializeRelationships: function(Model, content, includedModels) {
-			var _this = this;
-			var used = {};
+			var _this = this,
+				used = {};
 	
 			if(!content) {
 				return;
@@ -1985,9 +2038,9 @@ return /******/ (function(modules) { // webpackBootstrap
 		//Exports
 		//AMD
 		if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = (function () {
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
 				return BaseError;
-			}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		}
 	
 		//CommonJS
@@ -2004,8 +2057,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ }
 /******/ ])
-})
+});
 
-/*
-//@ sourceMappingURL=ember-datalight.js.map
-*/
+//# sourceMappingURL=ember-datalight.js.map

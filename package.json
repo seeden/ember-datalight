@@ -1,7 +1,7 @@
 {
 	"name": "ember-datalight",
 	"description": "A lightweight data persistence library for Ember with full support of JSON structure",
-	"version": "0.9.9",
+	"version": "0.9.11",
 	"private": false,
 	"author": "Zlatko Fedor",
 	"engines": {
@@ -31,7 +31,7 @@
 	"main": "./lib/",
 	"dependencies": {
 		"web-error": "~1.0.2",
-		"webpack": "~1.1.10",
+		"webpack": "~1.4.4",
 		"ember-templates-loader": "~0.2.1",
 		"imports-loader": "~0.6.3",
 		"script-loader": "~0.5.2"
