@@ -69,10 +69,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		Promise = Ember.RSVP.Promise,
 		WebError = __webpack_require__(12),
 		DataLight = __webpack_require__(3),
-		ModelBase = __webpack_require__(5),
-		RESTAdapter = __webpack_require__(6),
-		PromiseObject = __webpack_require__(7),
-		PromiseArray = __webpack_require__(8),
+		ModelBase = __webpack_require__(6),
+		RESTAdapter = __webpack_require__(7),
+		PromiseObject = __webpack_require__(8),
+		PromiseArray = __webpack_require__(5),
 		attribute = __webpack_require__(9);
 	
 	var Model = module.exports = DataLight.Model = ModelBase.extend({
@@ -333,7 +333,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var Ember = __webpack_require__(4),
 		DataLight = __webpack_require__(3),
-		PromiseArray = __webpack_require__(8),
+		PromiseArray = __webpack_require__(5),
 		map = Ember.EnumerableUtils.map,
 		RSVP = Ember.RSVP,
 		Promise = RSVP.Promise;
@@ -421,6 +421,16 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4);
+	
+	var PromiseArray = module.exports = Ember.ArrayProxy.extend(Ember.PromiseProxyMixin);
+
+/***/ },
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -611,7 +621,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 6 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -626,7 +636,8 @@ return /******/ (function(modules) { // webpackBootstrap
 		GET: 'GET',
 		POST: 'POST',
 		PUT: 'PUT',
-		DELETE: 'DELETE'
+		DELETE: 'DELETE',
+		PATCH: 'PATCH'
 	};
 	
 	var RESTAdapter = module.exports = DataLight.RESTAdapter = Ember.Object.extend({
@@ -752,13 +763,21 @@ return /******/ (function(modules) { // webpackBootstrap
 			return url;
 		},
 	
-		_ajaxOptions: function(url, type, options) {
+		_ajaxOptions: function(url, requestType, options) {
 			options = options || {};
 			options.url = this._prepareURL(url);
-			options.type = type;
-			options.dataType = 'json';
+			options.type = requestType;
+			options.dataType = options.dataType || 'json';
 			options.context = this;
 			options.headers = Ember.$.extend({}, this.get('headers'), options.headers);
+	
+			if(options.contentType!==false && 
+				(requestType === type.POST || requestType === type.PUT || requestType === type.PATCH)) {
+				options.contentType = options.contentType ||  "application/json";
+				if(options.data && options.processData!==false) {
+					options.data = JSON.stringify(options.data);
+				}
+			}
 	
 			return options;
 		},
@@ -813,7 +832,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -825,23 +844,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var Ember = __webpack_require__(4);
-	
-	var PromiseArray = module.exports = Ember.ArrayProxy.extend(Ember.PromiseProxyMixin);
-
-/***/ },
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Ember = __webpack_require__(4),
 		$ = Ember.$,
 		DataLight = __webpack_require__(3),
-		ModelBase = __webpack_require__(5),
+		ModelBase = __webpack_require__(6),
 		ComputedObject = __webpack_require__(10),
 		Wrapper = __webpack_require__(13),
 		MixedWrapper = __webpack_require__(14),

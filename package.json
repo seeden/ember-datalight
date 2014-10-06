@@ -1,7 +1,7 @@
 {
 	"name": "ember-datalight",
 	"description": "A lightweight data persistence library for Ember with full support of JSON structure",
-	"version": "0.9.12",
+	"version": "0.9.13",
 	"private": false,
 	"author": "Zlatko Fedor",
 	"engines": {
@@ -26,7 +26,8 @@
 	"scripts": {
 		"start": "node node_modules/grunt-cli/bin/grunt",
 		"test": "node node_modules/grunt-cli/bin/grunt test",
-		"postinstall": "bower install"
+		"postinstall": "bower install",
+		"build": "node webpack.js"
 	},
 	"main": "./lib/",
 	"dependencies": {
