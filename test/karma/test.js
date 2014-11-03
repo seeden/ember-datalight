@@ -709,8 +709,8 @@ describe('Model with array of objects', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(2);
 
 		var images = article.get('images');
-		Should(images[0]).have.property('file', 'file1.jpg');
-		Should(images[1]).have.property('file', 'file2.jpg');
+		Should(images[0].get('file')).be.exactly('file1.jpg');
+		Should(images[1].get('file')).be.exactly('file2.jpg');
 
 		article.get('attributes.images').pushObject({});
 	});
@@ -729,7 +729,7 @@ describe('Model with array of objects', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(3);
 
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
+		Should(images[2].get('file')).be.exactly('file3.jpg');
 	});	
 
 	it('can add multiple images', function() {
@@ -751,8 +751,8 @@ describe('Model with array of objects', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
 
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
-		Should(images[3]).have.property('file', 'file4.jpg');
+		Should(images[2].get('file')).be.exactly('file3.jpg');
+		Should(images[3].get('file')).be.exactly('file4.jpg');
 	});	
 
 	it('can set as original', function() {
@@ -777,8 +777,8 @@ describe('Model with array of objects', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
 
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
-		Should(images[3]).have.property('file', 'file4.jpg');
+		Should(images[2].get('file')).be.exactly('file3.jpg');
+		Should(images[3].get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -791,14 +791,14 @@ describe('Model with array of objects', function(){
 
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
-		Should(images[3]).have.property('file', 'file4.jpg');
+		Should(images[2].get('file')).be.exactly('file3.jpg');
+		Should(images[3].get('file')).be.exactly('file4.jpg');
 
 		article.get('attributes.images').pushObject({ file: 'file5.jpg' });
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(5);
 
 		var images = article.get('images');
-		Should(images[4]).have.property('file', 'file5.jpg');
+		Should(images[4].get('file')).be.exactly('file5.jpg');
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -808,8 +808,8 @@ describe('Model with array of objects', function(){
 
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
-		Should(images[3]).have.property('file', 'file4.jpg');
+		Should(images[2].get('file')).be.exactly('file3.jpg');
+		Should(images[3].get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(false);
@@ -853,8 +853,9 @@ describe('Model with array of objects - readOnly', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
 
 		var images = article.get('images');
-		Should(images[2]).have.property('file', 'file3.jpg');
-		Should(images[3]).have.property('file', 'file4.jpg');
+
+		Should(images[2].get('file')).be.exactly('file3.jpg');
+		Should(images[3].get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -870,6 +871,6 @@ describe('Model with array of objects - readOnly', function(){
 		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(1);
 
 		var images = article.get('images');
-		Should(images[0]).have.property('file', 'file1.jpg');
+		Should(images[0].get('file')).be.exactly('file1.jpg');
 	});
 });

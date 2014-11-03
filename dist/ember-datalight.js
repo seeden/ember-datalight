@@ -69,10 +69,10 @@ return /******/ (function(modules) { // webpackBootstrap
 		Promise = Ember.RSVP.Promise,
 		WebError = __webpack_require__(12),
 		DataLight = __webpack_require__(3),
-		ModelBase = __webpack_require__(6),
-		RESTAdapter = __webpack_require__(7),
-		PromiseObject = __webpack_require__(8),
-		PromiseArray = __webpack_require__(5),
+		ModelBase = __webpack_require__(5),
+		RESTAdapter = __webpack_require__(6),
+		PromiseObject = __webpack_require__(7),
+		PromiseArray = __webpack_require__(8),
 		attribute = __webpack_require__(9);
 	
 	var Model = module.exports = DataLight.Model = ModelBase.extend({
@@ -333,7 +333,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var Ember = __webpack_require__(4),
 		DataLight = __webpack_require__(3),
-		PromiseArray = __webpack_require__(5),
+		PromiseArray = __webpack_require__(8),
 		map = Ember.EnumerableUtils.map,
 		RSVP = Ember.RSVP,
 		Promise = RSVP.Promise;
@@ -421,16 +421,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var Ember = __webpack_require__(4);
-	
-	var PromiseArray = module.exports = Ember.ArrayProxy.extend(Ember.PromiseProxyMixin);
-
-/***/ },
-/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -593,7 +583,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			}
 	
 			this.setAsOriginal(json);
-	
+			//this.propertyDidChange('value');
 			return this;
 		},
 	
@@ -621,7 +611,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 7 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -832,7 +822,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -844,13 +834,23 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4);
+	
+	var PromiseArray = module.exports = Ember.ArrayProxy.extend(Ember.PromiseProxyMixin);
+
+/***/ },
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Ember = __webpack_require__(4),
 		$ = Ember.$,
 		DataLight = __webpack_require__(3),
-		ModelBase = __webpack_require__(6),
+		ModelBase = __webpack_require__(5),
 		ComputedObject = __webpack_require__(10),
 		Wrapper = __webpack_require__(13),
 		MixedWrapper = __webpack_require__(14),
@@ -1267,6 +1267,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		setupData: function(data, partial) {
 			this.set('__value', this._preSerialize(data));
+	
+			var parent = this.get('parent');
+			if(!parent) {
+				return;
+			}
+			parent.childChanged(this);
 		}
 	});
 	
@@ -1708,6 +1714,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 		useSetupData: false,
 	
+	
 		copy: function() {
 			properties = ['value', 'original', 'defaultValue', 
 				'readOnly', 'async',
@@ -1724,6 +1731,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			}
 	
 			this.setProperties({
+				dirtyNames: [],
 				original: [],
 				'__defaultValue': []
 			});
@@ -1734,8 +1742,9 @@ return /******/ (function(modules) { // webpackBootstrap
 			this.propertyDidChange('value');
 		},
 	
-		//set value
-		_serialize: function(items) {
+		_prepareItems: function(items) {
+			var newItems = [];
+	
 			var wrapperClass = this.get('wrapperClass');
 			if(!wrapperClass) {
 				throw new Error('Array wrapperClass is not defined');
@@ -1745,25 +1754,33 @@ return /******/ (function(modules) { // webpackBootstrap
 				throw new Error('Items is not an array');
 			}
 	
-			var newItems = Ember.A([]);
 			for(var i=0; i<items.length; i++) {
-				var item = items[i];
-	
-				if(this.useSetupData) {
-					var newItem = wrapperClass.create({
+				var item = items[i],
+					newItem = wrapperClass.create({
 						parent: this
 					});
 	
+				if(this.useSetupData) {
 					newItem.setupData(item);
 				} else {
-					var newItem = wrapperClass.create({
-						parent: this
-					});	
-	
 					newItem.set('value', item);
 				}
 	
 				newItems.pushObject(newItem);
+			}		
+	
+			return newItems;
+		},
+	
+		//set value
+		_serialize: function(items) {
+			items = this._prepareItems(items);
+	
+			var newItems = this.get('__value') || Ember.A([]);
+			newItems.splice(0, newItems.length);
+	
+			for(var i=0;i<items.length; i++) {
+				newItems.push(items[i]);	
 			}
 	
 			//load computed property imadiately
@@ -1805,7 +1822,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			}
 	
 	  		objects = objects || Ember.A([]);
-	  		objects = this._preSerialize(objects);
+	  		objects = this._prepareItems(objects);
 	
 	  		var items = this.get('__value') || Ember.A([]);
 	
@@ -1832,15 +1849,25 @@ return /******/ (function(modules) { // webpackBootstrap
 		}.property('dirtyCount').readOnly(),
 	
 	  	computed: function() {
-	  		var items = this.get('value');
-	  		var wrapperClass = this.get('wrapperClass');
+	  		var items = this.get('value'),
+	  			wrapperClass = this.get('wrapperClass'),
+	  			wrapperItems = this.get('__value') || [];
 	
 	  		if(wrapperClass && wrapperClass.isModelWrapper) {
 	  			return wrapperClass.model.findMany(items);
+	  		} else if(wrapperClass && wrapperClass.isObjectWWW) {
+	  			var newItems = [];
+	
+				for(var i=0; i<wrapperItems.length; i++) {
+					newItems.push(wrapperItems[i].get('computed'));
+				}
+	
+				return newItems;
 	  		}
 	
 	  		return items;
-	  	}.property('value', 'wrapperClass').readOnly(),
+	  	}.property('value', 'wrapperClass', '__value').readOnly(),
+	
 	
 	  	wrapperClass: function() {
 			return this.constructor.wrapperClass;
@@ -1889,7 +1916,7 @@ return /******/ (function(modules) { // webpackBootstrap
 			//notify childs
 			var items = this.get('__value') || Ember.A([]);
 			for(var i=0; i<items.length; i++) {
-				items[i].rollback();
+				items[i].setAsOriginal(); //notice: because must be setted as original
 			}
 		},
 	
@@ -1907,6 +1934,8 @@ return /******/ (function(modules) { // webpackBootstrap
 			this.useSetupData = true;
 			this._super(data, partial);
 			this.useSetupData = false;
+	
+			this.propertyDidChange('value');
 		}
 	});
 	
