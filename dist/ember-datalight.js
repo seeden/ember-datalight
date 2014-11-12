@@ -67,7 +67,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	var Ember = __webpack_require__(4),
 		Promise = Ember.RSVP.Promise,
-		WebError = __webpack_require__(12),
+		WebError = __webpack_require__(21),
 		DataLight = __webpack_require__(3),
 		ModelBase = __webpack_require__(5),
 		RESTAdapter = __webpack_require__(6),
@@ -617,10 +617,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
-		WebError = __webpack_require__(12),
+		WebError = __webpack_require__(21),
 		DataLight = __webpack_require__(3),
 		Adapter = __webpack_require__(2),
-		RESTSerializer = __webpack_require__(11);
+		RESTSerializer = __webpack_require__(20);
 	
 	var type = {
 		GET: 'GET',
@@ -852,15 +852,15 @@ return /******/ (function(modules) { // webpackBootstrap
 		DataLight = __webpack_require__(3),
 		ModelBase = __webpack_require__(5),
 		ComputedObject = __webpack_require__(10),
-		Wrapper = __webpack_require__(13),
-		MixedWrapper = __webpack_require__(14),
-		ObjectWrapper = __webpack_require__(15),
-		StringWrapper = __webpack_require__(16),
-		NumberWrapper = __webpack_require__(17),
-		BooleanWrapper = __webpack_require__(18),
-		DateWrapper = __webpack_require__(19),
-		ModelWrapper = __webpack_require__(20),
-		ArrayWrapper = __webpack_require__(21);
+		Wrapper = __webpack_require__(11),
+		MixedWrapper = __webpack_require__(12),
+		ObjectWrapper = __webpack_require__(13),
+		StringWrapper = __webpack_require__(14),
+		NumberWrapper = __webpack_require__(15),
+		BooleanWrapper = __webpack_require__(16),
+		DateWrapper = __webpack_require__(17),
+		ModelWrapper = __webpack_require__(18),
+		ArrayWrapper = __webpack_require__(19);
 	
 	function getWrapperClass(type) {
 		var typeOfType = Ember.typeOf(type),
@@ -943,6 +943,16 @@ return /******/ (function(modules) { // webpackBootstrap
 			return wrapper.get('computed');
 		}).meta(meta);
 	};
+	
+	attribute.Wrapper = Wrapper;
+	attribute.MixedWrapper = MixedWrapper;
+	attribute.ObjectWrapper = ObjectWrapper;
+	attribute.StringWrapper = StringWrapper;
+	attribute.NumberWrapper = NumberWrapper;
+	attribute.BooleanWrapper = BooleanWrapper;
+	attribute.DateWrapper = DateWrapper;
+	attribute.ArrayWrapper = ArrayWrapper;
+	attribute.ModelWrapper = ModelWrapper;
 
 /***/ },
 /* 10 */
@@ -971,109 +981,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 11 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	var Ember = __webpack_require__(4),
-		DataLight = __webpack_require__(3),
-		JSONSerializer = __webpack_require__(22);
-	
-	var RESTSerializer = module.exports = DataLight.RESTSerializer = JSONSerializer.extend({
-		
-	});
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
-		'use strict';
-	
-		function defineWebError (BaseError) {
-			function WebError (status, message, constructorOpt) {
-				this.status = status || 500;
-				message = message || STATUS_CODES[this.status];
-	
-				BaseError.call(this, message, constructorOpt || WebError);
-			}
-	
-			WebError.prototype = new BaseError(); 
-			WebError.prototype.name = 'WebError';
-			WebError.STATUS_CODES = STATUS_CODES;
-	
-			return WebError;
-		}
-	
-		var STATUS_CODES = {
-			400: "Bad Request",
-			401: "Unauthorized",
-			402: "Payment Required",
-			403: "Forbidden",
-			404: "Not Found",
-			405: "Method Not Allowed",
-			406: "Not Acceptable",
-			407: "Proxy Authentication Required",
-			408: "Request Timeout",
-			409: "Conflict",
-			410: "Gone",
-			411: "Length Required",
-			412: "Precondition Failed",
-			413: "Request Entity Too Large",
-			414: "Request-URI Too Long",
-			415: "Unsupported Media Type",
-			416: "Requested Range Not Satisfiable",
-			417: "Expectation Failed",
-			418: "I'm a Teapot", // (RFC 2324) http://tools.ietf.org/html/rfc2324
-			420: "Enhance Your Calm", // Returned by the Twitter Search and Trends API when the client is being rate limited
-			422: "Unprocessable Entity", // (WebDAV) (RFC 4918)
-			423: "Locked", // (WebDAV) (RFC 4918)
-			424: "Failed Dependency", // (WebDAV) (RFC 4918)
-			425: "Unordered Collection", // (RFC 3648)
-			426: "Upgrade Required", // (RFC 2817)
-			428: "Precondition Required",
-			429: "Too Many Requests", // Used for rate limiting
-			431: "Request Header Fields Too Large",
-			444: "No Response", // An nginx HTTP server extension. The server returns no information to the client and closes the connection (useful as a deterrent for malware).
-			449: "Retry With", // A Microsoft extension. The request should be retried after performing the appropriate action.
-			450: "Blocked By Windows Parental Controls",
-			499: "Client Closed Request",
-			500: "Internal Server Error",
-			501: "Not Implemented",
-			502: "Bad Gateway",
-			503: "Service Unavailable",
-			504: "Gateway Timeout",
-			505: "HTTP Version Not Supported",
-			506: "Variant Also Negotiates",
-			507: "Insufficient Storage",
-			508: "Loop Detected",
-			509: "Bandwidth Limit Exceeded",
-			510: "Not Extended",
-			511: "Network Authentication Required"
-		};	
-	
-		//Exports
-		//AMD
-		if (true) {
-			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(23)], __WEBPACK_AMD_DEFINE_RESULT__ = function (BaseError) {
-				return defineWebError(BaseError);
-			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-		}
-	
-		//CommonJS
-		else if (typeof module !== 'undefined' && module.exports) {
-			module.exports = defineWebError(require('base-error'));
-		}
-	
-		//Script tag
-		else {
-			root.WebError = defineWebError(root.BaseError);
-		}
-	
-	} (this));
-
-/***/ },
-/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Ember = __webpack_require__(4);
@@ -1285,12 +1192,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 14 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var MixedWrapper = module.exports = Wrapper.extend({
 		//set value
@@ -1305,14 +1212,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 15 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
 		Promise = Ember.RSVP.Promise,
-		Wrapper = __webpack_require__(13),
+		Wrapper = __webpack_require__(11),
 		ComputedObject = __webpack_require__(10);
 	
 	var ObjectWrapper = module.exports = Wrapper.extend({
@@ -1542,12 +1449,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 16 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var StringWrapper = module.exports = Wrapper.extend({
 		//set value
@@ -1562,12 +1469,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 17 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var NumberWrapper = module.exports = Wrapper.extend({
 		//set value
@@ -1586,12 +1493,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 18 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var BooleanWrapper = module.exports = Wrapper.extend({
 		//set value
@@ -1615,12 +1522,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 19 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var DateWrapper = module.exports = Wrapper.extend({
 		//set value
@@ -1635,12 +1542,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 20 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Wrapper = __webpack_require__(13);
+	var Wrapper = __webpack_require__(11);
 	
 	var ModelWrapper = module.exports = Wrapper.extend({
 		async: true,
@@ -1696,15 +1603,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	});
 
 /***/ },
-/* 21 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
 	var Ember = __webpack_require__(4),
-		Wrapper = __webpack_require__(13),
-		ModelWrapper = __webpack_require__(20),
-		MixedWrapper = __webpack_require__(14),
+		Wrapper = __webpack_require__(11),
+		ModelWrapper = __webpack_require__(18),
+		MixedWrapper = __webpack_require__(12),
 		Model = __webpack_require__(1);
 	
 	var ArrayWrapper = module.exports = Wrapper.extend(Ember.MutableArray, {
@@ -1942,6 +1849,109 @@ return /******/ (function(modules) { // webpackBootstrap
 	ArrayWrapper.reopenClass({
 		wrapperClass: MixedWrapper
 	});
+
+/***/ },
+/* 20 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var Ember = __webpack_require__(4),
+		DataLight = __webpack_require__(3),
+		JSONSerializer = __webpack_require__(22);
+	
+	var RESTSerializer = module.exports = DataLight.RESTSerializer = JSONSerializer.extend({
+		
+	});
+
+/***/ },
+/* 21 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root) {
+		'use strict';
+	
+		function defineWebError (BaseError) {
+			function WebError (status, message, constructorOpt) {
+				this.status = status || 500;
+				message = message || STATUS_CODES[this.status];
+	
+				BaseError.call(this, message, constructorOpt || WebError);
+			}
+	
+			WebError.prototype = new BaseError(); 
+			WebError.prototype.name = 'WebError';
+			WebError.STATUS_CODES = STATUS_CODES;
+	
+			return WebError;
+		}
+	
+		var STATUS_CODES = {
+			400: "Bad Request",
+			401: "Unauthorized",
+			402: "Payment Required",
+			403: "Forbidden",
+			404: "Not Found",
+			405: "Method Not Allowed",
+			406: "Not Acceptable",
+			407: "Proxy Authentication Required",
+			408: "Request Timeout",
+			409: "Conflict",
+			410: "Gone",
+			411: "Length Required",
+			412: "Precondition Failed",
+			413: "Request Entity Too Large",
+			414: "Request-URI Too Long",
+			415: "Unsupported Media Type",
+			416: "Requested Range Not Satisfiable",
+			417: "Expectation Failed",
+			418: "I'm a Teapot", // (RFC 2324) http://tools.ietf.org/html/rfc2324
+			420: "Enhance Your Calm", // Returned by the Twitter Search and Trends API when the client is being rate limited
+			422: "Unprocessable Entity", // (WebDAV) (RFC 4918)
+			423: "Locked", // (WebDAV) (RFC 4918)
+			424: "Failed Dependency", // (WebDAV) (RFC 4918)
+			425: "Unordered Collection", // (RFC 3648)
+			426: "Upgrade Required", // (RFC 2817)
+			428: "Precondition Required",
+			429: "Too Many Requests", // Used for rate limiting
+			431: "Request Header Fields Too Large",
+			444: "No Response", // An nginx HTTP server extension. The server returns no information to the client and closes the connection (useful as a deterrent for malware).
+			449: "Retry With", // A Microsoft extension. The request should be retried after performing the appropriate action.
+			450: "Blocked By Windows Parental Controls",
+			499: "Client Closed Request",
+			500: "Internal Server Error",
+			501: "Not Implemented",
+			502: "Bad Gateway",
+			503: "Service Unavailable",
+			504: "Gateway Timeout",
+			505: "HTTP Version Not Supported",
+			506: "Variant Also Negotiates",
+			507: "Insufficient Storage",
+			508: "Loop Detected",
+			509: "Bandwidth Limit Exceeded",
+			510: "Not Extended",
+			511: "Network Authentication Required"
+		};	
+	
+		//Exports
+		//AMD
+		if (true) {
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(23)], __WEBPACK_AMD_DEFINE_RESULT__ = function (BaseError) {
+				return defineWebError(BaseError);
+			}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+		}
+	
+		//CommonJS
+		else if (typeof module !== 'undefined' && module.exports) {
+			module.exports = defineWebError(require('base-error'));
+		}
+	
+		//Script tag
+		else {
+			root.WebError = defineWebError(root.BaseError);
+		}
+	
+	} (this));
 
 /***/ },
 /* 22 */
