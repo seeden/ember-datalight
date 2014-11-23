@@ -51,13 +51,12 @@ describe('Number Wrapper', function(){
 		Should(wrapper.get('value')).be.exactly(value);
     });
 
-     it('can check dirty', function() {
+    it('can check dirty', function() {
 		var wrapper = NumberWrapper.create({});
 
 		Should(wrapper.get('isDirty')).be.exactly(false);
 		wrapper.set('value', 999);
 		Should(wrapper.get('isDirty')).be.exactly(true);
-
 
 		wrapper = NumberWrapper.create({
 			value: value
@@ -107,7 +106,6 @@ describe('Number Wrapper', function(){
 		Should(wrapper.get('isNull')).be.exactly(false);
     });
 });
-
 
 describe('Boolean Wrapper', function(){
 	it('can create', function() {
@@ -181,7 +179,6 @@ describe('Boolean Wrapper', function(){
     });         
 });
 
-
 describe('Array Wrapper', function(){
 	it('can create', function() {
 		var wrapper = ArrayWrapper.create();
@@ -224,7 +221,6 @@ var TestModel = Model.extend({});
 TestModel.reopenClass({
 	type: 'test'
 });
-
 
 describe('Test Model', function(){
 	it('instanceof', function() {
@@ -361,7 +357,6 @@ describe('Model', function(){
 		Should(json).have.property('created');
     }); 
 
-
     it('can rollback', function() {
 		var user = User.create({
 			name: 'Zlatik',
@@ -388,7 +383,6 @@ describe('Model', function(){
 		Should(user.get('isDirty')).be.exactly(false);
     });
 
-
     it('can setAsOriginal', function() {
 		var user = User.create({
 			name: 'Zlatik',
@@ -413,9 +407,7 @@ describe('Model', function(){
 		Should(user.get('isNew')).be.exactly(false);
 		Should(user.get('isDirty')).be.exactly(false);
     });    
-
 });
-
 
 describe('Model with subobject', function(){
 	it('can extend with few simple attributes', function() {
@@ -447,7 +439,6 @@ describe('Model with subobject', function(){
 		Should(user.get('age')).be.exactly(undefined);
 		Should(user.get('canEdit')).be.exactly(false);
 		Should(user.get('created')).be.exactly(undefined);
-
 
 		Should(user.get('address.state')).be.exactly('Slovakia');
 		Should(user.get('address.city')).be.exactly(undefined);
@@ -488,7 +479,6 @@ describe('Model with subobject', function(){
 			}
 		});
 
-
 		Should(user.get('isNew')).be.exactly(true);
 		Should(user.get('isDirty')).be.exactly(true);
 
@@ -496,7 +486,6 @@ describe('Model with subobject', function(){
 		Should(user.get('address.city')).be.exactly('Bratislava');
 
 		user.rollback();
-
 
 		Should(user.get('address.state')).be.exactly('Slovakia');
 		Should(user.get('address.city')).be.exactly(undefined);
@@ -512,7 +501,6 @@ describe('Model with subobject', function(){
 				city: 'Bratislava'
 			}
 		});
-
 
 		Should(user.get('isNew')).be.exactly(true);
 		Should(user.get('isDirty')).be.exactly(true);
@@ -554,7 +542,10 @@ describe('Model with array', function(){
 		Should(article.get('isDirty')).be.exactly(false);
 
 		Should(article.get('title')).be.exactly(undefined);
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(0);
+
+		var tags = article.get('tags');
+
+		Should(article.get('tags.length')).be.exactly(0);
     });
 
     it('can create instance with values', function() {
@@ -571,12 +562,12 @@ describe('Model with array', function(){
 		Should(article.get('isDirty')).be.exactly(true);
 
 		Should(article.get('title')).be.exactly('Article about cats in house');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
-		Should(article.get('tags')).have.property('0', 'house');
-		Should(article.get('tags')).have.property('1', 'car');
-		Should(article.get('tags')).have.property('2', 'cat');
-    });
+		Should(article.get('tags.length')).be.exactly(3);
 
+		Should(article.get('tags').objectAt(0)).be.exactly('house');
+		Should(article.get('tags').objectAt(1)).be.exactly('car');
+		Should(article.get('tags').objectAt(2)).be.exactly('cat');
+    });
 
     it('can add and remove value', function() {
 		var article = Article.create({
@@ -584,14 +575,20 @@ describe('Model with array', function(){
 			tags: ['house', 'car', 'cat']
 		});
 
-		article.get('attributes.tags').pushObject('dog');
+		var tags = article.get('tags');
 
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(4);
-		Should(article.get('tags')).have.property('3', 'dog');	
+		article.get('tags').pushObject('dog');
+
+		Should(article.get('tags.length')).be.exactly(4);
+		Should(article.get('tags').objectAt(3)).be.exactly('dog');
+
+		Should(tags.get('length')).be.exactly(4);
+		Should(tags.objectAt(3)).be.exactly('dog');	
 
 
-		article.get('attributes.tags').removeObject('dog');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
+		article.get('tags').removeObject('dog');
+		Should(article.get('tags.length')).be.exactly(3);
+		Should(tags.get('length')).be.exactly(3);
     });
 
 	it('can rollback', function() {
@@ -604,22 +601,23 @@ describe('Model with array', function(){
 		Should(article.get('isDirty')).be.exactly(true);
 
 		Should(article.get('title')).be.exactly('Article about cats in house');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
-		Should(article.get('tags')).have.property('0', 'house');
-		Should(article.get('tags')).have.property('1', 'car');
-		Should(article.get('tags')).have.property('2', 'cat');
+
+		Should(article.get('tags.length')).be.exactly(3);
+		Should(article.get('tags').objectAt(0)).be.exactly('house');
+		Should(article.get('tags').objectAt(1)).be.exactly('car');
+		Should(article.get('tags').objectAt(2)).be.exactly('cat');
 
 		article.rollback();
 
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(0);
+		Should(article.get('tags.length')).be.exactly(0);
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(false);
 
-		article.get('attributes.tags').pushObject('dog');
+		article.get('tags').pushObject('dog');
 
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(1);
-		Should(article.get('tags')).have.property('0', 'dog');	
+		Should(article.get('tags.length')).be.exactly(1);
+		Should(article.get('tags').objectAt(0)).be.exactly('dog');	
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -635,39 +633,39 @@ describe('Model with array', function(){
 		Should(article.get('isDirty')).be.exactly(true);
 
 		Should(article.get('title')).be.exactly('Article about cats in house');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
-		Should(article.get('tags')).have.property('0', 'house');
-		Should(article.get('tags')).have.property('1', 'car');
-		Should(article.get('tags')).have.property('2', 'cat');
+
+		Should(article.get('tags.length')).be.exactly(3);
+		Should(article.get('tags').objectAt(0)).be.exactly('house');
+		Should(article.get('tags').objectAt(1)).be.exactly('car');
+		Should(article.get('tags').objectAt(2)).be.exactly('cat');
 
 		article.setAsOriginal();
 
 		Should(article.get('title')).be.exactly('Article about cats in house');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
-		Should(article.get('tags')).have.property('0', 'house');
-		Should(article.get('tags')).have.property('1', 'car');
-		Should(article.get('tags')).have.property('2', 'cat');
+		Should(article.get('tags.length')).be.exactly(3);
+		Should(article.get('tags').objectAt(0)).be.exactly('house');
+		Should(article.get('tags').objectAt(1)).be.exactly('car');
+		Should(article.get('tags').objectAt(2)).be.exactly('cat');
 
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(false);
 
-		article.get('attributes.tags').pushObject('dog');
+		article.get('tags').pushObject('dog');
 
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(4);
-		Should(article.get('tags')).have.property('3', 'dog');	
+		Should(article.get('tags.length')).be.exactly(4);
+		Should(article.get('tags').objectAt(3)).be.exactly('dog');	
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(true);
 
-
 		article.rollback();
 
 		Should(article.get('title')).be.exactly('Article about cats in house');
-		Should(article.get('tags')).be.instanceof(Array).and.have.lengthOf(3);
-		Should(article.get('tags')).have.property('0', 'house');
-		Should(article.get('tags')).have.property('1', 'car');
-		Should(article.get('tags')).have.property('2', 'cat');
+		Should(article.get('tags.length')).be.exactly(3);
+		Should(article.get('tags').objectAt(0)).be.exactly('house');
+		Should(article.get('tags').objectAt(1)).be.exactly('car');
+		Should(article.get('tags').objectAt(2)).be.exactly('cat');
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(false);
@@ -692,7 +690,7 @@ describe('Model with array of objects', function(){
 		});
 
 		Should(article.get('title')).be.exactly('Title of article');
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(0);
+		Should(article.get('images.length')).be.exactly(0);
 	});
 
 	it('can create with multiple images', function() {
@@ -706,13 +704,14 @@ describe('Model with array of objects', function(){
 		});
 
 		Should(article.get('title')).be.exactly('Title of article2');
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(2);
+		Should(article.get('images.length')).be.exactly(2);
 
 		var images = article.get('images');
-		Should(images[0].get('file')).be.exactly('file1.jpg');
-		Should(images[1].get('file')).be.exactly('file2.jpg');
 
-		article.get('attributes.images').pushObject({});
+		Should(images.objectAt(0).get('file')).be.exactly('file1.jpg');
+		Should(images.objectAt(1).get('file')).be.exactly('file2.jpg');
+
+		article.get('images').pushObject({});
 	});
 
 	it('can add one image', function() {
@@ -725,12 +724,13 @@ describe('Model with array of objects', function(){
 			}]
 		});
 
-		article.get('attributes.images').pushObject({ file: 'file3.jpg' });
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(3);
+		article.get('images').pushObject({ file: 'file3.jpg' });
+		Should(article.get('images.length')).be.exactly(3);
 
 		var images = article.get('images');
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-	});	
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+	});
+
 
 	it('can add multiple images', function() {
 		var article = Article.create({
@@ -748,11 +748,11 @@ describe('Model with array of objects', function(){
 			file: 'file4.jpg' 
 		}]);
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('images.length')).be.exactly(4);
 
 		var images = article.get('images');
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-		Should(images[3].get('file')).be.exactly('file4.jpg');
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+		Should(images.objectAt(3).get('file')).be.exactly('file4.jpg');
 	});	
 
 	it('can set as original', function() {
@@ -774,11 +774,11 @@ describe('Model with array of objects', function(){
 			file: 'file4.jpg' 
 		}]);
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('images.length')).be.exactly(4);
 
 		var images = article.get('images');
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-		Should(images[3].get('file')).be.exactly('file4.jpg');
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+		Should(images.objectAt(3).get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -789,16 +789,16 @@ describe('Model with array of objects', function(){
 		Should(article.get('isDirty')).be.exactly(false);
 
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('images.length')).be.exactly(4);
 		var images = article.get('images');
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-		Should(images[3].get('file')).be.exactly('file4.jpg');
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+		Should(images.objectAt(3).get('file')).be.exactly('file4.jpg');
 
 		article.get('attributes.images').pushObject({ file: 'file5.jpg' });
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(5);
+		Should(article.get('images.length')).be.exactly(5);
 
 		var images = article.get('images');
-		Should(images[4].get('file')).be.exactly('file5.jpg');
+		Should(images.objectAt(4).get('file')).be.exactly('file5.jpg');
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -806,10 +806,10 @@ describe('Model with array of objects', function(){
 
 		article.rollback();
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('images.length')).be.exactly(4);
 		var images = article.get('images');
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-		Should(images[3].get('file')).be.exactly('file4.jpg');
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+		Should(images.objectAt(3).get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(false);
 		Should(article.get('isDirty')).be.exactly(false);
@@ -850,12 +850,12 @@ describe('Model with array of objects - readOnly', function(){
 			file: 'file4.jpg' 
 		}]);
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(4);
+		Should(article.get('images.length')).be.exactly(4);
 
 		var images = article.get('images');
 
-		Should(images[2].get('file')).be.exactly('file3.jpg');
-		Should(images[3].get('file')).be.exactly('file4.jpg');
+		Should(images.objectAt(2).get('file')).be.exactly('file3.jpg');
+		Should(images.objectAt(3).get('file')).be.exactly('file4.jpg');
 
 		Should(article.get('isNew')).be.exactly(true);
 		Should(article.get('isDirty')).be.exactly(true);
@@ -868,9 +868,9 @@ describe('Model with array of objects - readOnly', function(){
 			}]
 		});
 
-		Should(article.get('images')).be.instanceof(Array).and.have.lengthOf(1);
+		Should(article.get('images.length')).be.exactly(1);
 
 		var images = article.get('images');
-		Should(images[0].get('file')).be.exactly('file1.jpg');
+		Should(images.objectAt(0).get('file')).be.exactly('file1.jpg');
 	});
 });
